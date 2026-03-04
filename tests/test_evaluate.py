@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+if str(MODULE_ROOT) not in sys.path:
+    sys.path.insert(0, str(MODULE_ROOT))
+
+import evaluate
+
+
+class _FakeClient:
+    async def complete(self, messages: list[dict[str, str]]) -> str:
+        user_content = messages[1]["content"]
+        if "8 ## 3" in user_content:
+            return "<final_answer>5</final_answer>"
+        if "1 @@ 9" in user_content:
+            return "not-valid"
+        return "<final_answer>0</final_answer>"
+
+
+class EvaluateUnitTests(unittest.TestCase):
+    def test_parse_final_answer_accepts_single_digit_tag(self) -> None:
+        self.assertEqual(
+            evaluate.parse_final_answer("<final_answer>7</final_answer>"), 7
+        )
+
+    def test_parse_final_answer_rejects_extra_text(self) -> None:
+        self.assertIsNone(
+            evaluate.parse_final_answer("Answer: <final_answer>7</final_answer>")
+        )
+
+
+class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
+    async def test_evaluate_dataset_rows_computes_metrics(self) -> None:
+        rows = [
+            {
+                "input": "8 ## 3",
+                "expected_output": 5,
+                "metadata": {
+                    "id": "s1_0",
+                    "difficulty_level": "S1_Primitive",
+                    "n_ops": 1,
+                    "op_seq": ["##"],
+                },
+            },
+            {
+                "input": "1 @@ 9",
+                "expected_output": 9,
+                "metadata": {
+                    "id": "s2_0",
+                    "difficulty_level": "S2_Composition",
+                    "n_ops": 1,
+                    "op_seq": ["@@"],
+                },
+            },
+        ]
+        predictions, metrics = await evaluate.evaluate_dataset_rows(
+            rows=rows,
+            client=_FakeClient(),
+            concurrency=2,
+        )
+
+        self.assertEqual(len(predictions), 2)
+        self.assertEqual(metrics["total"], 2)
+        self.assertEqual(metrics["correct"], 1)
+        self.assertEqual(metrics["format_errors"], 1)
+        self.assertAlmostEqual(metrics["accuracy"], 0.5)
+        self.assertAlmostEqual(metrics["format_error_rate"], 0.5)
+        self.assertIn("S1_Primitive", metrics["by_difficulty"])
+        self.assertIn("S2_Composition", metrics["by_difficulty"])
+
+    def test_write_run_artifacts_writes_metrics_and_predictions(self) -> None:
+        predictions = [
+            {
+                "id": "s1_0",
+                "input": "8 ## 3",
+                "expected_output": 5,
+                "predicted_output": 5,
+                "is_correct": True,
+                "format_error": False,
+                "raw_response": "<final_answer>5</final_answer>",
+                "difficulty_level": "S1_Primitive",
+                "n_ops": 1,
+                "latency_seconds": 0.01,
+            }
+        ]
+        metrics = {"total": 1, "correct": 1, "accuracy": 1.0, "format_errors": 0}
+        run_config = {"model": "openai/test", "temperature": 1.0}
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            run_dir = evaluate.write_run_artifacts(
+                output_root=Path(tmp_dir),
+                predictions=predictions,
+                metrics=metrics,
+                run_config=run_config,
+                run_id="unit_test_run",
+            )
+
+            self.assertTrue((run_dir / "predictions.jsonl").exists())
+            self.assertTrue((run_dir / "metrics.json").exists())
+            self.assertTrue((run_dir / "run_config.json").exists())
+
+            lines = (
+                (run_dir / "predictions.jsonl")
+                .read_text(encoding="utf-8")
+                .strip()
+                .splitlines()
+            )
+            self.assertEqual(len(lines), 1)
+            row = json.loads(lines[0])
+            self.assertEqual(row["id"], "s1_0")
+
+
+if __name__ == "__main__":
+    unittest.main()
