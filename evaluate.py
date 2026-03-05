@@ -5,6 +5,7 @@ import asyncio
 import json
 import re
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import llm_client
@@ -33,13 +34,29 @@ def load_dataset_rows(
     return rows
 
 
-def _init_bucket() -> dict[str, float | int]:
+def _init_bucket() -> dict[str, int]:
     return {
         "total": 0,
         "correct": 0,
         "format_errors": 0,
-        "accuracy": 0.0,
-        "format_error_rate": 0.0,
+    }
+
+
+def _finalize_bucket(bucket: dict[str, int]) -> dict[str, float | int]:
+    bucket_total = bucket["total"]
+    if bucket_total == 0:
+        accuracy = 0.0
+        format_error_rate = 0.0
+    else:
+        accuracy = bucket["correct"] / bucket_total
+        format_error_rate = bucket["format_errors"] / bucket_total
+
+    return {
+        "total": bucket["total"],
+        "correct": bucket["correct"],
+        "format_errors": bucket["format_errors"],
+        "accuracy": accuracy,
+        "format_error_rate": format_error_rate,
     }
 
 
@@ -48,31 +65,25 @@ def compute_metrics(predictions: list[dict[str, object]]) -> dict[str, object]:
     correct = sum(1 for row in predictions if bool(row["is_correct"]))
     format_errors = sum(1 for row in predictions if bool(row["format_error"]))
 
-    by_difficulty: dict[str, dict[str, float | int]] = {}
-    by_n_ops: dict[str, dict[str, float | int]] = {}
+    by_difficulty: defaultdict[str, dict[str, int]] = defaultdict(_init_bucket)
+    by_n_ops: defaultdict[str, dict[str, int]] = defaultdict(_init_bucket)
 
     for row in predictions:
         difficulty = str(row["difficulty_level"])
         n_ops_key = str(row["n_ops"])
 
-        if difficulty not in by_difficulty:
-            by_difficulty[difficulty] = _init_bucket()
-        if n_ops_key not in by_n_ops:
-            by_n_ops[n_ops_key] = _init_bucket()
-
         for bucket in (by_difficulty[difficulty], by_n_ops[n_ops_key]):
-            bucket["total"] = int(bucket["total"]) + 1
-            if bool(row["is_correct"]):
-                bucket["correct"] = int(bucket["correct"]) + 1
+            bucket["total"] += 1
+            bucket["correct"] += int(row["is_correct"])
             if bool(row["format_error"]):
-                bucket["format_errors"] = int(bucket["format_errors"]) + 1
+                bucket["format_errors"] += 1
 
-    for bucket in [*by_difficulty.values(), *by_n_ops.values()]:
-        bucket_total = int(bucket["total"])
-        if bucket_total == 0:
-            continue
-        bucket["accuracy"] = int(bucket["correct"]) / bucket_total
-        bucket["format_error_rate"] = int(bucket["format_errors"]) / bucket_total
+    by_difficulty_metrics = {
+        key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
+    }
+    by_n_ops_metrics = {
+        key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()
+    }
 
     accuracy = (correct / total) if total else 0.0
     format_error_rate = (format_errors / total) if total else 0.0
@@ -83,8 +94,8 @@ def compute_metrics(predictions: list[dict[str, object]]) -> dict[str, object]:
         "accuracy": accuracy,
         "format_errors": format_errors,
         "format_error_rate": format_error_rate,
-        "by_difficulty": by_difficulty,
-        "by_n_ops": by_n_ops,
+        "by_difficulty": by_difficulty_metrics,
+        "by_n_ops": by_n_ops_metrics,
     }
 
 
