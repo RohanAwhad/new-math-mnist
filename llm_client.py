@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-import importlib
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
 from contracts import ChatMessage
 
 
-ACompletionFn = Callable[..., Awaitable[Any]]
+ACompletionFn = Callable[..., Awaitable[object]]
 
 
-def _default_acompletion(**kwargs: Any) -> Awaitable[Any]:
-    litellm = importlib.import_module("litellm")
-    return litellm.acompletion(**kwargs)
+def _default_acompletion(**kwargs: object) -> Awaitable[object]:
+    from litellm import acompletion
+
+    # NOTE(types): LiteLLM accepts provider-specific kwargs with broad
+    # response shapes. Keep this as the dynamic boundary for now.
+    # TODO(types): replace kwargs pass-through with explicit request/response
+    # contracts once model providers are finalized.
+    return acompletion(**kwargs)  # type: ignore[arg-type,no-any-return]
 
 
 def _extract_content(response: Any) -> str:
