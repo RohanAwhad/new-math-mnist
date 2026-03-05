@@ -52,7 +52,7 @@ class LiteLLMClient:
         *,
         model: str,
         temperature: float = 1.0,
-        max_tokens: int = 64,
+        max_tokens: int = 1024,
         acompletion_fn: ACompletionFn | None = None,
     ) -> None:
         self.model = model
