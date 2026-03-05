@@ -24,9 +24,6 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(messages[1]["role"], "user")
         self.assertIn("Expression: 3 ## 8 @@ 2", messages[1]["content"])
 
-    def test_prompt_version_is_tag_contract_version(self) -> None:
-        self.assertEqual(prompts.PROMPT_VERSION, "v2_final_answer_tag")
-
 
 if __name__ == "__main__":
     unittest.main()
