@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+import importlib
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any
+
+from contracts import ChatMessage
 
 
-Message = dict[str, str]
-ACompletionFn = Callable[..., Awaitable[object]]
+ACompletionFn = Callable[..., Awaitable[Any]]
 
 
-def _default_acompletion(**kwargs: object) -> Awaitable[object]:
-    from litellm import acompletion
+def _default_acompletion(**kwargs: Any) -> Awaitable[Any]:
+    litellm = importlib.import_module("litellm")
+    return litellm.acompletion(**kwargs)
 
-    return acompletion(**kwargs)
 
-
-def _extract_content(response: object) -> str:
-    choices: object
+def _extract_content(response: Any) -> str:
+    choices: Any
     if isinstance(response, dict):
         choices = response["choices"]
     else:
@@ -60,10 +62,10 @@ class LiteLLMClient:
         self.max_tokens = max_tokens
         self._acompletion_fn = acompletion_fn or _default_acompletion
 
-    async def complete(self, messages: list[Message]) -> str:
+    async def complete(self, messages: Sequence[ChatMessage]) -> str:
         response = await self._acompletion_fn(
             model=self.model,
-            messages=messages,
+            messages=list(messages),
             temperature=self.temperature,
             max_tokens=self.max_tokens,
         )
