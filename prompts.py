@@ -11,15 +11,16 @@ Rules:
 
 Evaluation order: strictly left-to-right. No precedence. No parentheses.
 
-Return exactly one XML tag and nothing else:
+You may think through the problem step by step before responding.
+
+Return your final answer as exactly one XML tag:
 <final_answer><digit></final_answer>
 
 <digit> must be a single integer from 0 to 9.
-Do not include any explanation or extra text.
 """
 
 USER_TEMPLATE = """Expression: {expression}
-Return only <final_answer><digit></final_answer>."""
+Return <final_answer><digit></final_answer>."""
 
 
 def build_messages(expression: str) -> list[dict[str, str]]:
