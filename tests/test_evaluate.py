@@ -80,6 +80,7 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(format_error_rate, 0.5)
         self.assertIn("S1_Primitive", by_difficulty)
         self.assertIn("S2_Composition", by_difficulty)
+        self.assertIn(1, metrics["by_n_ops"])
 
     def test_write_run_artifacts_writes_metrics_and_predictions(self) -> None:
         predictions: list[PredictionRow] = [

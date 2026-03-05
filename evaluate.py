@@ -79,11 +79,11 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     by_difficulty: defaultdict[DifficultyLevel, BucketCounts] = defaultdict(
         _init_bucket
     )
-    by_n_ops: defaultdict[str, BucketCounts] = defaultdict(_init_bucket)
+    by_n_ops: defaultdict[int, BucketCounts] = defaultdict(_init_bucket)
 
     for row in predictions:
         difficulty = row["difficulty_level"]
-        n_ops_key = str(row["n_ops"])
+        n_ops_key = row["n_ops"]
 
         for bucket in (by_difficulty[difficulty], by_n_ops[n_ops_key]):
             bucket["total"] += 1
@@ -91,17 +91,18 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
             if bool(row["format_error"]):
                 bucket["format_errors"] += 1
 
-    by_difficulty_metrics = {
-        key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
-    }
-    by_n_ops_metrics = {
-        key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()
-    }
+    by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {}
+    for key, bucket in by_difficulty.items():
+        by_difficulty_metrics[key] = _finalize_bucket(bucket)
+
+    by_n_ops_metrics: dict[int, BucketMetrics] = {}
+    for key, bucket in by_n_ops.items():
+        by_n_ops_metrics[key] = _finalize_bucket(bucket)
 
     accuracy = (correct / total) if total else 0.0
     format_error_rate = (format_errors / total) if total else 0.0
 
-    return {
+    metrics: Metrics = {
         "total": total,
         "correct": correct,
         "accuracy": accuracy,
@@ -110,6 +111,15 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
         "by_difficulty": by_difficulty_metrics,
         "by_n_ops": by_n_ops_metrics,
     }
+    return metrics
+
+
+def _serialize_metrics(metrics: Metrics) -> dict[str, object]:
+    serialized_metrics: dict[str, object] = dict(metrics)
+    serialized_metrics["by_n_ops"] = {
+        str(n_ops): bucket for n_ops, bucket in metrics["by_n_ops"].items()
+    }
+    return serialized_metrics
 
 
 async def evaluate_dataset_rows(
@@ -181,8 +191,10 @@ def write_run_artifacts(
             file.write("\n")
 
     metrics_path = run_dir / "metrics.json"
+    serialized_metrics = _serialize_metrics(metrics)
     metrics_path.write_text(
-        json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(serialized_metrics, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
     config_path = run_dir / "run_config.json"

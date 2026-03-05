@@ -61,7 +61,7 @@ class Metrics(TypedDict):
     format_errors: int
     format_error_rate: float
     by_difficulty: dict[DifficultyLevel, BucketMetrics]
-    by_n_ops: dict[str, BucketMetrics]
+    by_n_ops: dict[int, BucketMetrics]
 
 
 Rules = TypedDict(
