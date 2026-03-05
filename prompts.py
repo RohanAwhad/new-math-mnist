@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contracts import ChatMessage
+
 PROMPT_VERSION = "v1"
 
 SYSTEM_PROMPT = """You are evaluating expressions in a synthetic arithmetic system.
@@ -21,7 +23,7 @@ USER_TEMPLATE = """Expression: {expression}
 Return <final_answer>[0-9]</final_answer>."""
 
 
-def build_messages(expression: str) -> list[dict[str, str]]:
+def build_messages(expression: str) -> list[ChatMessage]:
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": USER_TEMPLATE.format(expression=expression)},

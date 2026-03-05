@@ -1,20 +1,26 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any
+
+from contracts import ChatMessage
 
 
-Message = dict[str, str]
 ACompletionFn = Callable[..., Awaitable[object]]
 
 
 def _default_acompletion(**kwargs: object) -> Awaitable[object]:
     from litellm import acompletion
 
-    return acompletion(**kwargs)
+    # NOTE(types): LiteLLM accepts provider-specific kwargs with broad
+    # response shapes. Keep this as the dynamic boundary for now.
+    # TODO(types): replace kwargs pass-through with explicit request/response
+    # contracts once model providers are finalized.
+    return acompletion(**kwargs)  # type: ignore[arg-type,no-any-return]
 
 
-def _extract_content(response: object) -> str:
-    choices: object
+def _extract_content(response: Any) -> str:
+    choices: Any
     if isinstance(response, dict):
         choices = response["choices"]
     else:
@@ -60,10 +66,10 @@ class LiteLLMClient:
         self.max_tokens = max_tokens
         self._acompletion_fn = acompletion_fn or _default_acompletion
 
-    async def complete(self, messages: list[Message]) -> str:
+    async def complete(self, messages: Sequence[ChatMessage]) -> str:
         response = await self._acompletion_fn(
             model=self.model,
-            messages=messages,
+            messages=list(messages),
             temperature=self.temperature,
             max_tokens=self.max_tokens,
         )

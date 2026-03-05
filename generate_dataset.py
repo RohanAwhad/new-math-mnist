@@ -6,35 +6,41 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
-OPERATORS: tuple[str, ...] = ("##", "@@", "$$")
+from contracts import (
+    DIFFICULTY_LEVELS,
+    LEVEL_S1,
+    LEVEL_S2,
+    LEVEL_S3,
+    OPERATORS,
+    DatasetRow,
+    DifficultyLevel,
+    Manifest,
+    Operator,
+)
+
 DIGITS: tuple[int, ...] = tuple(range(10))
 MAX_S1_EXPRESSIONS = len(DIGITS) * len(OPERATORS) * len(DIGITS)
 
-LEVEL_S1 = "S1_Primitive"
-LEVEL_S2 = "S2_Composition"
-LEVEL_S3 = "S3_LengthOOD"
-LEVEL_ORDER: tuple[str, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
-
 # This mix comes from the previous recommendation with S4 removed and ratios
 # re-normalized.
-DEFAULT_LEVEL_MIX: dict[str, float] = {
+DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
     LEVEL_S1: 0.004,
     LEVEL_S2: 0.498,
     LEVEL_S3: 0.498,
 }
 
 
-def apply_operator(lhs: int, operator: str, rhs: int) -> int:
-    if operator == "##":
+def apply_operator(lhs: int, operator: Operator, rhs: int) -> int:
+    if operator is Operator.ABS_DIFF:
         return abs(lhs - rhs)
-    if operator == "@@":
+    if operator is Operator.MAX:
         return max(lhs, rhs)
-    if operator == "$$":
+    if operator is Operator.MIN:
         return min(lhs, rhs)
     raise ValueError(f"unknown operator: {operator}")
 
 
-def evaluate_expression(numbers: list[int], operators: list[str]) -> int:
+def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
     if len(numbers) != len(operators) + 1:
         raise ValueError("numbers must be exactly one longer than operators")
 
@@ -44,7 +50,7 @@ def evaluate_expression(numbers: list[int], operators: list[str]) -> int:
     return value
 
 
-def render_expression(numbers: list[int], operators: list[str]) -> str:
+def render_expression(numbers: list[int], operators: list[Operator]) -> str:
     tokens: list[str] = [str(numbers[0])]
     for operator, rhs in zip(operators, numbers[1:], strict=True):
         tokens.append(operator)
@@ -54,21 +60,25 @@ def render_expression(numbers: list[int], operators: list[str]) -> str:
 
 def sample_expression(
     rng: random.Random, min_ops: int, max_ops: int
-) -> tuple[list[int], list[str]]:
+) -> tuple[list[int], list[Operator]]:
     n_ops = rng.randint(min_ops, max_ops)
     numbers = [rng.randint(0, 9) for _ in range(n_ops + 1)]
-    operators = [rng.choice(OPERATORS) for _ in range(n_ops)]
+    operators: list[Operator] = [rng.choice(OPERATORS) for _ in range(n_ops)]
     return numbers, operators
 
 
 def allocate_by_ratio(
-    total: int, ratios: dict[str, float], levels: tuple[str, ...]
-) -> dict[str, int]:
+    total: int,
+    ratios: dict[DifficultyLevel, float],
+    levels: tuple[DifficultyLevel, ...],
+) -> dict[DifficultyLevel, int]:
     if total < 0:
         raise ValueError("total must be non-negative")
 
-    raw = {level: total * ratios[level] for level in levels}
-    counts = {level: int(raw[level]) for level in levels}
+    raw: dict[DifficultyLevel, float] = {
+        level: total * ratios[level] for level in levels
+    }
+    counts: dict[DifficultyLevel, int] = {level: int(raw[level]) for level in levels}
     remainder = total - sum(counts.values())
 
     for level in sorted(
@@ -79,8 +89,8 @@ def allocate_by_ratio(
     return counts
 
 
-def allocate_level_counts(num_examples: int) -> dict[str, int]:
-    counts = allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, LEVEL_ORDER)
+def allocate_level_counts(num_examples: int) -> dict[DifficultyLevel, int]:
+    counts = allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, DIFFICULTY_LEVELS)
 
     if counts[LEVEL_S1] <= MAX_S1_EXPRESSIONS:
         return counts
@@ -88,7 +98,7 @@ def allocate_level_counts(num_examples: int) -> dict[str, int]:
     remaining_total = num_examples - MAX_S1_EXPRESSIONS
     remaining_levels = (LEVEL_S2, LEVEL_S3)
     remaining_weight = DEFAULT_LEVEL_MIX[LEVEL_S2] + DEFAULT_LEVEL_MIX[LEVEL_S3]
-    remaining_mix = {
+    remaining_mix: dict[DifficultyLevel, float] = {
         LEVEL_S2: DEFAULT_LEVEL_MIX[LEVEL_S2] / remaining_weight,
         LEVEL_S3: DEFAULT_LEVEL_MIX[LEVEL_S3] / remaining_weight,
     }
@@ -106,13 +116,13 @@ def allocate_level_counts(num_examples: int) -> dict[str, int]:
 @dataclass(frozen=True, slots=True)
 class Sample:
     sample_id: str
-    difficulty_level: str
+    difficulty_level: DifficultyLevel
     input: str
     expected_output: int
     n_ops: int
-    op_seq: tuple[str, ...]
+    op_seq: tuple[Operator, ...]
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> DatasetRow:
         return {
             "input": self.input,
             "expected_output": self.expected_output,
@@ -131,7 +141,7 @@ def generate_s1_primitive(
     if size > MAX_S1_EXPRESSIONS:
         raise ValueError(f"S1 size cannot exceed {MAX_S1_EXPRESSIONS}")
 
-    pool: list[tuple[str, int, str]] = []
+    pool: list[tuple[str, int, Operator]] = []
     for lhs in DIGITS:
         for operator in OPERATORS:
             for rhs in DIGITS:
@@ -166,7 +176,7 @@ def generate_s1_primitive(
 
 def generate_random_level(
     *,
-    difficulty_level: str,
+    difficulty_level: DifficultyLevel,
     sample_prefix: str,
     size: int,
     min_ops: int,
@@ -215,7 +225,7 @@ def build_label_histogram(samples: list[Sample]) -> dict[str, int]:
     return {str(label): count for label, count in counts.items()}
 
 
-def write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
+def write_jsonl(path: Path, rows: list[DatasetRow]) -> None:
     with path.open("w", encoding="utf-8") as file:
         for row in rows:
             file.write(json.dumps(row, sort_keys=True))
@@ -277,7 +287,7 @@ def main() -> None:
     dataset_path = output_dir / "dataset.jsonl"
     write_jsonl(dataset_path, [sample.to_dict() for sample in all_samples])
 
-    manifest = {
+    manifest: Manifest = {
         "benchmark_name": "new_math_ops_v1",
         "seed": args.seed,
         "rules": {

@@ -11,6 +11,16 @@ from pathlib import Path
 
 import llm_client
 import prompts
+from contracts import (
+    BucketCounts,
+    BucketMetrics,
+    LLMCompletionClient,
+    DatasetRow,
+    DifficultyLevel,
+    Metrics,
+    PredictionRow,
+    RunConfig,
+)
 from tqdm import tqdm
 
 
@@ -24,19 +34,18 @@ def parse_final_answer(text: str) -> int | None:
     return int(match.group(1))
 
 
-def load_dataset_rows(
-    dataset_path: Path, limit: int | None = None
-) -> list[dict[str, object]]:
-    rows: list[dict[str, object]] = []
+def load_dataset_rows(dataset_path: Path, limit: int | None = None) -> list[DatasetRow]:
+    rows: list[DatasetRow] = []
     with dataset_path.open("r", encoding="utf-8") as file:
         for line in file:
-            rows.append(json.loads(line))
+            row: DatasetRow = json.loads(line)
+            rows.append(row)
             if limit is not None and len(rows) >= limit:
                 break
     return rows
 
 
-def _init_bucket() -> dict[str, int]:
+def _init_bucket() -> BucketCounts:
     return {
         "total": 0,
         "correct": 0,
@@ -44,7 +53,7 @@ def _init_bucket() -> dict[str, int]:
     }
 
 
-def _finalize_bucket(bucket: dict[str, int]) -> dict[str, float | int]:
+def _finalize_bucket(bucket: BucketCounts) -> BucketMetrics:
     bucket_total = bucket["total"]
     if bucket_total == 0:
         accuracy = 0.0
@@ -62,17 +71,19 @@ def _finalize_bucket(bucket: dict[str, int]) -> dict[str, float | int]:
     }
 
 
-def compute_metrics(predictions: list[dict[str, object]]) -> dict[str, object]:
+def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     total = len(predictions)
     correct = sum(1 for row in predictions if bool(row["is_correct"]))
     format_errors = sum(1 for row in predictions if bool(row["format_error"]))
 
-    by_difficulty: defaultdict[str, dict[str, int]] = defaultdict(_init_bucket)
-    by_n_ops: defaultdict[str, dict[str, int]] = defaultdict(_init_bucket)
+    by_difficulty: defaultdict[DifficultyLevel, BucketCounts] = defaultdict(
+        _init_bucket
+    )
+    by_n_ops: defaultdict[int, BucketCounts] = defaultdict(_init_bucket)
 
     for row in predictions:
-        difficulty = str(row["difficulty_level"])
-        n_ops_key = str(row["n_ops"])
+        difficulty = row["difficulty_level"]
+        n_ops_key = row["n_ops"]
 
         for bucket in (by_difficulty[difficulty], by_n_ops[n_ops_key]):
             bucket["total"] += 1
@@ -80,17 +91,17 @@ def compute_metrics(predictions: list[dict[str, object]]) -> dict[str, object]:
             if bool(row["format_error"]):
                 bucket["format_errors"] += 1
 
-    by_difficulty_metrics = {
+    by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {
         key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
     }
-    by_n_ops_metrics = {
+    by_n_ops_metrics: dict[int, BucketMetrics] = {
         key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()
     }
 
     accuracy = (correct / total) if total else 0.0
     format_error_rate = (format_errors / total) if total else 0.0
 
-    return {
+    metrics: Metrics = {
         "total": total,
         "correct": correct,
         "accuracy": accuracy,
@@ -99,21 +110,22 @@ def compute_metrics(predictions: list[dict[str, object]]) -> dict[str, object]:
         "by_difficulty": by_difficulty_metrics,
         "by_n_ops": by_n_ops_metrics,
     }
+    return metrics
 
 
 async def evaluate_dataset_rows(
     *,
-    rows: list[dict[str, object]],
-    client: object,
+    rows: list[DatasetRow],
+    client: LLMCompletionClient,
     concurrency: int,
-) -> tuple[list[dict[str, object]], dict[str, object]]:
+) -> tuple[list[PredictionRow], Metrics]:
     semaphore = asyncio.Semaphore(concurrency)
 
-    async def evaluate_row(row: dict[str, object]) -> dict[str, object]:
+    async def evaluate_row(row: DatasetRow) -> PredictionRow:
         async with semaphore:
-            expression = str(row["input"])
-            expected_output = int(row["expected_output"])
-            metadata = dict(row["metadata"])
+            expression = row["input"]
+            expected_output = row["expected_output"]
+            metadata = row["metadata"]
 
             start = time.perf_counter()
             raw_response = await client.complete(prompts.build_messages(expression))
@@ -124,19 +136,19 @@ async def evaluate_dataset_rows(
             is_correct = parsed == expected_output
 
             return {
-                "id": str(metadata["id"]),
+                "id": metadata["id"],
                 "input": expression,
                 "expected_output": expected_output,
                 "predicted_output": parsed,
                 "is_correct": is_correct,
                 "format_error": format_error,
                 "raw_response": raw_response,
-                "difficulty_level": str(metadata["difficulty_level"]),
-                "n_ops": int(metadata["n_ops"]),
+                "difficulty_level": metadata["difficulty_level"],
+                "n_ops": metadata["n_ops"],
                 "latency_seconds": round(latency, 6),
             }
 
-    predictions: list[dict[str, object]] = []
+    predictions: list[PredictionRow] = []
     pending = [evaluate_row(row) for row in rows]
     for completed in tqdm(
         asyncio.as_completed(pending),
@@ -154,9 +166,9 @@ async def evaluate_dataset_rows(
 def write_run_artifacts(
     *,
     output_root: Path,
-    predictions: list[dict[str, object]],
-    metrics: dict[str, object],
-    run_config: dict[str, object],
+    predictions: list[PredictionRow],
+    metrics: Metrics,
+    run_config: RunConfig,
     run_id: str | None = None,
 ) -> Path:
     resolved_run_id = run_id or time.strftime("run_%Y%m%d_%H%M%S")
@@ -171,7 +183,8 @@ def write_run_artifacts(
 
     metrics_path = run_dir / "metrics.json"
     metrics_path.write_text(
-        json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(metrics, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
     config_path = run_dir / "run_config.json"
@@ -221,7 +234,7 @@ async def _run() -> None:
         concurrency=args.concurrency,
     )
 
-    run_config = {
+    run_config: RunConfig = {
         "model": args.model,
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
