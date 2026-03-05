@@ -14,13 +14,11 @@ Evaluation order: strictly left-to-right. No precedence. No parentheses.
 You may think through the problem step by step before responding.
 
 Return your final answer as exactly one XML tag:
-<final_answer><digit></final_answer>
-
-<digit> must be a single integer from 0 to 9.
+<final_answer>[0-9]</final_answer>
 """
 
 USER_TEMPLATE = """Expression: {expression}
-Return <final_answer><digit></final_answer>."""
+Return <final_answer>[0-9]</final_answer>."""
 
 
 def build_messages(expression: str) -> list[dict[str, str]]:
