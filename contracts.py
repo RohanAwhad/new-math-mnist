@@ -26,6 +26,9 @@ LEVEL_S3: DifficultyLevel = DifficultyLevel.S3_LENGTH_OOD
 DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 
 
+# NOTE: Intentional duplication: keep flat manifest rule keys close to Operator values.
+# Approved for now; FIXME: if this pattern appears in more than two places, refactor
+# to a shared serializer/adapter boundary.
 Rules = TypedDict(
     "Rules",
     {
