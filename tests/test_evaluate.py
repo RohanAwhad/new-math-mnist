@@ -30,9 +30,9 @@ class EvaluateUnitTests(unittest.TestCase):
             evaluate.parse_final_answer("<final_answer>7</final_answer>"), 7
         )
 
-    def test_parse_final_answer_rejects_extra_text(self) -> None:
-        self.assertIsNone(
-            evaluate.parse_final_answer("Answer: <final_answer>7</final_answer>")
+    def test_parse_final_answer_accepts_embedded_tag(self) -> None:
+        self.assertEqual(
+            evaluate.parse_final_answer("Answer: <final_answer>7</final_answer>"), 7
         )
 
 

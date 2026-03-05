@@ -1,2 +1,3 @@
 __pycache__
-data/new_math_ops_v1
+data/*
+benchmarks/new_math_ops/runs/*/predictions*

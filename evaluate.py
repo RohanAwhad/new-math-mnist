@@ -4,19 +4,21 @@ import argparse
 import asyncio
 import json
 import re
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 
 import llm_client
 import prompts
+from tqdm import tqdm
 
 
-FINAL_ANSWER_PATTERN = re.compile(r"^\s*<final_answer>\s*([0-9])\s*</final_answer>\s*$")
+FINAL_ANSWER_PATTERN = re.compile(r"<final_answer>\s*([0-9])\s*</final_answer>")
 
 
 def parse_final_answer(text: str) -> int | None:
-    match = FINAL_ANSWER_PATTERN.match(text)
+    match = FINAL_ANSWER_PATTERN.search(text)
     if match is None:
         return None
     return int(match.group(1))
@@ -134,7 +136,17 @@ async def evaluate_dataset_rows(
                 "latency_seconds": round(latency, 6),
             }
 
-    predictions = await asyncio.gather(*(evaluate_row(row) for row in rows))
+    predictions: list[dict[str, object]] = []
+    pending = [evaluate_row(row) for row in rows]
+    for completed in tqdm(
+        asyncio.as_completed(pending),
+        total=len(pending),
+        desc="Evaluating",
+        unit="sample",
+        disable=not sys.stderr.isatty(),
+    ):
+        predictions.append(await completed)
+
     metrics = compute_metrics(predictions)
     return predictions, metrics
 
