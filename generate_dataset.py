@@ -18,9 +18,9 @@ LEVEL_ORDER: tuple[str, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 # This mix comes from the previous recommendation with S4 removed and ratios
 # re-normalized.
 DEFAULT_LEVEL_MIX: dict[str, float] = {
-    LEVEL_S1: 0.004571428571428572,
-    LEVEL_S2: 0.8525714285714285,
-    LEVEL_S3: 0.14285714285714285,
+    LEVEL_S1: 0.004,
+    LEVEL_S2: 0.498,
+    LEVEL_S3: 0.498,
 }
 
 
@@ -257,7 +257,7 @@ def main() -> None:
         sample_prefix="s2",
         size=counts_by_level[LEVEL_S2],
         min_ops=2,
-        max_ops=4,
+        max_ops=8,
         rng=rng_s2,
         seen=seen_expressions,
     )
@@ -265,8 +265,8 @@ def main() -> None:
         difficulty_level=LEVEL_S3,
         sample_prefix="s3",
         size=counts_by_level[LEVEL_S3],
-        min_ops=5,
-        max_ops=10,
+        min_ops=8,
+        max_ops=20,
         rng=rng_s3,
         seen=seen_expressions,
     )
