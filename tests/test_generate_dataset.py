@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,10 @@ class GenerateDatasetTests(unittest.TestCase):
         self.assertLessEqual(
             counts[generate_dataset.LEVEL_S1], generate_dataset.MAX_S1_EXPRESSIONS
         )
+
+    def test_generate_s1_primitive_returns_empty_when_size_zero(self) -> None:
+        samples = generate_dataset.generate_s1_primitive(0, random.Random(7), set())
+        self.assertEqual(samples, [])
 
     def test_cli_writes_single_dataset_and_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

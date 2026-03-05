@@ -143,6 +143,9 @@ def generate_s1_primitive(
 
     samples: list[Sample] = []
     for expression, target, operator in pool:
+        if len(samples) == size:
+            break
+
         if expression in seen:
             continue
 
@@ -157,9 +160,6 @@ def generate_s1_primitive(
             )
         )
         seen.add(expression)
-
-        if len(samples) == size:
-            break
 
     return samples
 
