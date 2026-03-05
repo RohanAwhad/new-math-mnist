@@ -113,5 +113,5 @@ class RunConfig(TypedDict):
     prompt_version: str
 
 
-class CompletionClient(Protocol):
+class LLMCompletionClient(Protocol):
     async def complete(self, messages: Sequence[ChatMessage]) -> str: ...

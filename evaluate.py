@@ -14,7 +14,7 @@ import prompts
 from contracts import (
     BucketCounts,
     BucketMetrics,
-    CompletionClient,
+    LLMCompletionClient,
     DatasetRow,
     DifficultyLevel,
     Metrics,
@@ -125,7 +125,7 @@ def _serialize_metrics(metrics: Metrics) -> dict[str, object]:
 async def evaluate_dataset_rows(
     *,
     rows: list[DatasetRow],
-    client: CompletionClient,
+    client: LLMCompletionClient,
     concurrency: int,
 ) -> tuple[list[PredictionRow], Metrics]:
     semaphore = asyncio.Semaphore(concurrency)
