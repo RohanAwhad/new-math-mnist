@@ -33,11 +33,11 @@ DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
 
 
 def apply_operator(lhs: int, operator: Operator, rhs: int) -> int:
-    if operator == "##":
+    if operator is Operator.ABS_DIFF:
         return abs(lhs - rhs)
-    if operator == "@@":
+    if operator is Operator.MAX:
         return max(lhs, rhs)
-    if operator == "$$":
+    if operator is Operator.MIN:
         return min(lhs, rhs)
     raise ValueError(f"unknown operator: {operator}")
 

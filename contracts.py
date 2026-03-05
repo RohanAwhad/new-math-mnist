@@ -1,17 +1,28 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from enum import Enum
 from typing import Literal, Protocol, TypedDict
 
 
-Operator = Literal["##", "@@", "$$"]
-DifficultyLevel = Literal["S1_Primitive", "S2_Composition", "S3_LengthOOD"]
+class Operator(str, Enum):
+    ABS_DIFF = "##"
+    MAX = "@@"
+    MIN = "$$"
+
+
+class DifficultyLevel(str, Enum):
+    S1_PRIMITIVE = "S1_Primitive"
+    S2_COMPOSITION = "S2_Composition"
+    S3_LENGTH_OOD = "S3_LengthOOD"
+
+
 ChatRole = Literal["system", "user"]
 
-OPERATORS: tuple[Operator, ...] = ("##", "@@", "$$")
-LEVEL_S1: DifficultyLevel = "S1_Primitive"
-LEVEL_S2: DifficultyLevel = "S2_Composition"
-LEVEL_S3: DifficultyLevel = "S3_LengthOOD"
+OPERATORS: tuple[Operator, ...] = (Operator.ABS_DIFF, Operator.MAX, Operator.MIN)
+LEVEL_S1: DifficultyLevel = DifficultyLevel.S1_PRIMITIVE
+LEVEL_S2: DifficultyLevel = DifficultyLevel.S2_COMPOSITION
+LEVEL_S3: DifficultyLevel = DifficultyLevel.S3_LENGTH_OOD
 DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 
 

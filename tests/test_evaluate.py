@@ -13,7 +13,15 @@ if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
 
 import evaluate
-from contracts import ChatMessage, DatasetRow, Metrics, PredictionRow, RunConfig
+from contracts import (
+    ChatMessage,
+    DatasetRow,
+    DifficultyLevel,
+    Metrics,
+    Operator,
+    PredictionRow,
+    RunConfig,
+)
 
 
 class _FakeClient:
@@ -46,9 +54,9 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "expected_output": 5,
                 "metadata": {
                     "id": "s1_0",
-                    "difficulty_level": "S1_Primitive",
+                    "difficulty_level": DifficultyLevel.S1_PRIMITIVE,
                     "n_ops": 1,
-                    "op_seq": ["##"],
+                    "op_seq": [Operator.ABS_DIFF],
                 },
             },
             {
@@ -56,9 +64,9 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "expected_output": 9,
                 "metadata": {
                     "id": "s2_0",
-                    "difficulty_level": "S2_Composition",
+                    "difficulty_level": DifficultyLevel.S2_COMPOSITION,
                     "n_ops": 1,
-                    "op_seq": ["@@"],
+                    "op_seq": [Operator.MAX],
                 },
             },
         ]
@@ -78,8 +86,8 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertAlmostEqual(accuracy, 0.5)
         self.assertAlmostEqual(format_error_rate, 0.5)
-        self.assertIn("S1_Primitive", by_difficulty)
-        self.assertIn("S2_Composition", by_difficulty)
+        self.assertIn(DifficultyLevel.S1_PRIMITIVE, by_difficulty)
+        self.assertIn(DifficultyLevel.S2_COMPOSITION, by_difficulty)
         self.assertIn(1, metrics["by_n_ops"])
 
     def test_write_run_artifacts_writes_metrics_and_predictions(self) -> None:
@@ -92,7 +100,7 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "is_correct": True,
                 "format_error": False,
                 "raw_response": "<final_answer>5</final_answer>",
-                "difficulty_level": "S1_Primitive",
+                "difficulty_level": DifficultyLevel.S1_PRIMITIVE,
                 "n_ops": 1,
                 "latency_seconds": 0.01,
             }
