@@ -21,8 +21,6 @@ from contracts import (
 DIGITS: tuple[int, ...] = tuple(range(10))
 MAX_S1_EXPRESSIONS = len(DIGITS) * len(OPERATORS) * len(DIGITS)
 
-LEVEL_ORDER: tuple[DifficultyLevel, ...] = DIFFICULTY_LEVELS
-
 # This mix comes from the previous recommendation with S4 removed and ratios
 # re-normalized.
 DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
@@ -92,7 +90,7 @@ def allocate_by_ratio(
 
 
 def allocate_level_counts(num_examples: int) -> dict[DifficultyLevel, int]:
-    counts = allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, LEVEL_ORDER)
+    counts = allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, DIFFICULTY_LEVELS)
 
     if counts[LEVEL_S1] <= MAX_S1_EXPRESSIONS:
         return counts
