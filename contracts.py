@@ -8,6 +8,12 @@ Operator = Literal["##", "@@", "$$"]
 DifficultyLevel = Literal["S1_Primitive", "S2_Composition", "S3_LengthOOD"]
 ChatRole = Literal["system", "user"]
 
+OPERATORS: tuple[Operator, ...] = ("##", "@@", "$$")
+LEVEL_S1: DifficultyLevel = "S1_Primitive"
+LEVEL_S2: DifficultyLevel = "S2_Composition"
+LEVEL_S3: DifficultyLevel = "S3_LengthOOD"
+DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
+
 
 class ChatMessage(TypedDict):
     role: ChatRole

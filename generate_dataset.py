@@ -6,16 +6,22 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
-from contracts import DatasetRow, DifficultyLevel, Manifest, Operator
+from contracts import (
+    DIFFICULTY_LEVELS,
+    LEVEL_S1,
+    LEVEL_S2,
+    LEVEL_S3,
+    OPERATORS,
+    DatasetRow,
+    DifficultyLevel,
+    Manifest,
+    Operator,
+)
 
-OPERATORS: tuple[Operator, ...] = ("##", "@@", "$$")
 DIGITS: tuple[int, ...] = tuple(range(10))
 MAX_S1_EXPRESSIONS = len(DIGITS) * len(OPERATORS) * len(DIGITS)
 
-LEVEL_S1: DifficultyLevel = "S1_Primitive"
-LEVEL_S2: DifficultyLevel = "S2_Composition"
-LEVEL_S3: DifficultyLevel = "S3_LengthOOD"
-LEVEL_ORDER: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
+LEVEL_ORDER: tuple[DifficultyLevel, ...] = DIFFICULTY_LEVELS
 
 # This mix comes from the previous recommendation with S4 removed and ratios
 # re-normalized.
