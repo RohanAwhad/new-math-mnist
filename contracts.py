@@ -5,25 +5,50 @@ from enum import Enum
 from typing import Literal, Protocol, TypedDict
 
 
+class ArithmeticFamily(str, Enum):
+    NORMAL = "normal"
+    NEW = "new"
+
+
 class Operator(str, Enum):
+    ADD = "+"
+    SUBTRACT = "-"
+    MULTIPLY = "*"
+    FLOOR_DIVIDE = "/"
     ABS_DIFF = "##"
     MAX = "@@"
     MIN = "$$"
 
 
 class DifficultyLevel(str, Enum):
-    S1_PRIMITIVE = "S1_Primitive"
-    S2_COMPOSITION = "S2_Composition"
-    S3_LENGTH_OOD = "S3_LengthOOD"
+    L1 = "L1"
+    L2 = "L2"
+    L3 = "L3"
 
 
 ChatRole = Literal["system", "user"]
 
-OPERATORS: tuple[Operator, ...] = (Operator.ABS_DIFF, Operator.MAX, Operator.MIN)
-LEVEL_S1: DifficultyLevel = DifficultyLevel.S1_PRIMITIVE
-LEVEL_S2: DifficultyLevel = DifficultyLevel.S2_COMPOSITION
-LEVEL_S3: DifficultyLevel = DifficultyLevel.S3_LENGTH_OOD
-DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
+FAMILY_NORMAL: ArithmeticFamily = ArithmeticFamily.NORMAL
+FAMILY_NEW: ArithmeticFamily = ArithmeticFamily.NEW
+ARITHMETIC_FAMILIES: tuple[ArithmeticFamily, ...] = (FAMILY_NORMAL, FAMILY_NEW)
+
+NORMAL_OPERATORS: tuple[Operator, ...] = (
+    Operator.ADD,
+    Operator.SUBTRACT,
+    Operator.MULTIPLY,
+    Operator.FLOOR_DIVIDE,
+)
+NEW_OPERATORS: tuple[Operator, ...] = (
+    Operator.ABS_DIFF,
+    Operator.MAX,
+    Operator.MIN,
+)
+OPERATORS: tuple[Operator, ...] = (*NORMAL_OPERATORS, *NEW_OPERATORS)
+
+LEVEL_L1: DifficultyLevel = DifficultyLevel.L1
+LEVEL_L2: DifficultyLevel = DifficultyLevel.L2
+LEVEL_L3: DifficultyLevel = DifficultyLevel.L3
+DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_L1, LEVEL_L2, LEVEL_L3)
 
 
 # NOTE: Intentional duplication: keep flat manifest rule keys close to Operator values.
@@ -32,11 +57,14 @@ DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 Rules = TypedDict(
     "Rules",
     {
+        "+": str,
+        "-": str,
+        "*": str,
+        "/": str,
         "##": str,
         "@@": str,
         "$$": str,
         "evaluation": str,
-        "digits": str,
     },
 )
 
@@ -48,6 +76,7 @@ class ChatMessage(TypedDict):
 
 class DatasetMetadata(TypedDict):
     id: str
+    arithmetic_family: ArithmeticFamily
     difficulty_level: DifficultyLevel
     n_ops: int
     op_seq: list[Operator]
@@ -67,6 +96,7 @@ class PredictionRow(TypedDict):
     is_correct: bool
     format_error: bool
     raw_response: str
+    arithmetic_family: ArithmeticFamily
     difficulty_level: DifficultyLevel
     n_ops: int
     latency_seconds: float
@@ -92,12 +122,14 @@ class Metrics(TypedDict):
     accuracy: float
     format_errors: int
     format_error_rate: float
+    by_family: dict[ArithmeticFamily, BucketMetrics]
     by_difficulty: dict[DifficultyLevel, BucketMetrics]
     by_n_ops: dict[int, BucketMetrics]
 
 
 class ManifestMetadataFields(TypedDict):
     id: str
+    arithmetic_family: str
     difficulty_level: str
     n_ops: str
     op_seq: str
@@ -115,8 +147,11 @@ class Manifest(TypedDict):
     rules: Rules
     requested_num_examples: int
     generated_num_examples: int
+    default_family_mix: dict[ArithmeticFamily, float]
     default_level_mix: dict[DifficultyLevel, float]
+    counts_by_family: dict[ArithmeticFamily, int]
     counts_by_difficulty: dict[DifficultyLevel, int]
+    counts_by_family_and_difficulty: dict[ArithmeticFamily, dict[DifficultyLevel, int]]
     label_histogram: dict[str, int]
     row_fields: ManifestRowFields
     files: list[str]
