@@ -26,6 +26,18 @@ LEVEL_S3: DifficultyLevel = DifficultyLevel.S3_LENGTH_OOD
 DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 
 
+Rules = TypedDict(
+    "Rules",
+    {
+        "##": str,
+        "@@": str,
+        "$$": str,
+        "evaluation": str,
+        "digits": str,
+    },
+)
+
+
 class ChatMessage(TypedDict):
     role: ChatRole
     content: str
@@ -79,18 +91,6 @@ class Metrics(TypedDict):
     format_error_rate: float
     by_difficulty: dict[DifficultyLevel, BucketMetrics]
     by_n_ops: dict[int, BucketMetrics]
-
-
-Rules = TypedDict(
-    "Rules",
-    {
-        "##": str,
-        "@@": str,
-        "$$": str,
-        "evaluation": str,
-        "digits": str,
-    },
-)
 
 
 class ManifestMetadataFields(TypedDict):
