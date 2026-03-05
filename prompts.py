@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-PROMPT_VERSION = "v2_final_answer_tag"
+PROMPT_VERSION = "v1"
 
 SYSTEM_PROMPT = """You are evaluating expressions in a synthetic arithmetic system.
 
