@@ -52,17 +52,6 @@ def render_expression(numbers: list[int], operators: list[str]) -> str:
     return " ".join(tokens)
 
 
-def make_label_quota(size: int, rng: random.Random) -> dict[int, int]:
-    quota = {digit: size // 10 for digit in DIGITS}
-    remainder = size % 10
-
-    labels = list(DIGITS)
-    rng.shuffle(labels)
-    for label in labels[:remainder]:
-        quota[label] += 1
-    return quota
-
-
 def sample_expression(
     rng: random.Random, min_ops: int, max_ops: int
 ) -> tuple[list[int], list[str]]:
@@ -82,13 +71,9 @@ def allocate_by_ratio(
     counts = {level: int(raw[level]) for level in levels}
     remainder = total - sum(counts.values())
 
-    ranked_levels = sorted(
-        enumerate(levels),
-        key=lambda item: (raw[item[1]] - counts[item[1]], -item[0]),
-        reverse=True,
-    )
-    for index in range(remainder):
-        level = ranked_levels[index % len(ranked_levels)][1]
+    for level in sorted(
+        levels, key=lambda level: raw[level] - counts[level], reverse=True
+    )[:remainder]:
         counts[level] += 1
 
     return counts
@@ -179,7 +164,7 @@ def generate_s1_primitive(
     return samples
 
 
-def generate_balanced_level(
+def generate_random_level(
     *,
     difficulty_level: str,
     sample_prefix: str,
@@ -189,9 +174,6 @@ def generate_balanced_level(
     rng: random.Random,
     seen: set[str],
 ) -> list[Sample]:
-    quota = make_label_quota(size, rng)
-    label_counts = {digit: 0 for digit in DIGITS}
-
     samples: list[Sample] = []
     attempts = 0
     max_attempts = max(size * 500, 100_000)
@@ -210,8 +192,6 @@ def generate_balanced_level(
             continue
 
         target = evaluate_expression(numbers, operators)
-        if label_counts[target] >= quota[target]:
-            continue
 
         samples.append(
             Sample(
@@ -224,7 +204,6 @@ def generate_balanced_level(
             )
         )
         seen.add(expression)
-        label_counts[target] += 1
 
     return samples
 
@@ -273,7 +252,7 @@ def main() -> None:
     s1_samples = generate_s1_primitive(
         counts_by_level[LEVEL_S1], rng_s1, seen_expressions
     )
-    s2_samples = generate_balanced_level(
+    s2_samples = generate_random_level(
         difficulty_level=LEVEL_S2,
         sample_prefix="s2",
         size=counts_by_level[LEVEL_S2],
@@ -282,7 +261,7 @@ def main() -> None:
         rng=rng_s2,
         seen=seen_expressions,
     )
-    s3_samples = generate_balanced_level(
+    s3_samples = generate_random_level(
         difficulty_level=LEVEL_S3,
         sample_prefix="s3",
         size=counts_by_level[LEVEL_S3],
