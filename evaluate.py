@@ -113,14 +113,6 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     return metrics
 
 
-def _serialize_metrics(metrics: Metrics) -> dict[str, object]:
-    serialized_metrics: dict[str, object] = dict(metrics)
-    serialized_metrics["by_n_ops"] = {
-        str(n_ops): bucket for n_ops, bucket in metrics["by_n_ops"].items()
-    }
-    return serialized_metrics
-
-
 async def evaluate_dataset_rows(
     *,
     rows: list[DatasetRow],
@@ -190,9 +182,8 @@ def write_run_artifacts(
             file.write("\n")
 
     metrics_path = run_dir / "metrics.json"
-    serialized_metrics = _serialize_metrics(metrics)
     metrics_path.write_text(
-        json.dumps(serialized_metrics, indent=2, sort_keys=True) + "\n",
+        json.dumps(metrics, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
