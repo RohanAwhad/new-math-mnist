@@ -91,13 +91,12 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
             if bool(row["format_error"]):
                 bucket["format_errors"] += 1
 
-    by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {}
-    for key, bucket in by_difficulty.items():
-        by_difficulty_metrics[key] = _finalize_bucket(bucket)
-
-    by_n_ops_metrics: dict[int, BucketMetrics] = {}
-    for key, bucket in by_n_ops.items():
-        by_n_ops_metrics[key] = _finalize_bucket(bucket)
+    by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {
+        key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
+    }
+    by_n_ops_metrics: dict[int, BucketMetrics] = {
+        key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()
+    }
 
     accuracy = (correct / total) if total else 0.0
     format_error_rate = (format_errors / total) if total else 0.0
