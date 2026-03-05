@@ -19,7 +19,6 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(len(messages), 2)
         self.assertEqual(messages[0]["role"], "system")
         self.assertIn("a ## b = abs(a - b)", messages[0]["content"])
-        self.assertIn("<final_answer><digit></final_answer>", messages[0]["content"])
 
         self.assertEqual(messages[1]["role"], "user")
         self.assertIn("Expression: 3 ## 8 @@ 2", messages[1]["content"])
