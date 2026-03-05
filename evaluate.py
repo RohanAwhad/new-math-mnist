@@ -14,12 +14,12 @@ import prompts
 from contracts import (
     BucketCounts,
     BucketMetrics,
+    CompletionClient,
     DatasetRow,
     DifficultyLevel,
     Metrics,
     PredictionRow,
     RunConfig,
-    SupportsComplete,
 )
 from tqdm import tqdm
 
@@ -125,7 +125,7 @@ def _serialize_metrics(metrics: Metrics) -> dict[str, object]:
 async def evaluate_dataset_rows(
     *,
     rows: list[DatasetRow],
-    client: SupportsComplete,
+    client: CompletionClient,
     concurrency: int,
 ) -> tuple[list[PredictionRow], Metrics]:
     semaphore = asyncio.Semaphore(concurrency)
