@@ -1,29 +1,77 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+import operator as py_operator
+from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Literal, Protocol, TypedDict
 
 
+class ArithmeticFamily(str, Enum):
+    NORMAL = "normal"
+    NEW = "new"
+
+
+BinaryOperatorFn = Callable[[int, int], int]
+
+
+def _floor_divide(lhs: int, rhs: int) -> int:
+    if rhs == 0:
+        raise ValueError("division by zero")
+    return lhs // rhs
+
+
 class Operator(str, Enum):
-    ABS_DIFF = "##"
-    MAX = "@@"
-    MIN = "$$"
+    ADD = ("+", py_operator.add)
+    SUBTRACT = ("-", py_operator.sub)
+    MULTIPLY = ("*", py_operator.mul)
+    FLOOR_DIVIDE = ("/", _floor_divide)
+    ABS_DIFF = ("##", lambda lhs, rhs: abs(lhs - rhs))
+    MAX = ("@@", max)
+    MIN = ("$$", min)
+
+    _impl: BinaryOperatorFn
+
+    def __new__(cls, symbol: str, impl: BinaryOperatorFn) -> Operator:
+        instance = str.__new__(cls, symbol)
+        instance._value_ = symbol
+        instance._impl = impl
+        return instance
+
+    def apply(self, lhs: int, rhs: int) -> int:
+        return self._impl(lhs, rhs)
 
 
 class DifficultyLevel(str, Enum):
-    S1_PRIMITIVE = "S1_Primitive"
-    S2_COMPOSITION = "S2_Composition"
-    S3_LENGTH_OOD = "S3_LengthOOD"
+    L1 = "L1"
+    L2 = "L2"
+    L3 = "L3"
 
 
 ChatRole = Literal["system", "user"]
 
-OPERATORS: tuple[Operator, ...] = (Operator.ABS_DIFF, Operator.MAX, Operator.MIN)
-LEVEL_S1: DifficultyLevel = DifficultyLevel.S1_PRIMITIVE
-LEVEL_S2: DifficultyLevel = DifficultyLevel.S2_COMPOSITION
-LEVEL_S3: DifficultyLevel = DifficultyLevel.S3_LENGTH_OOD
-DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
+ARITHMETIC_FAMILIES: tuple[ArithmeticFamily, ...] = (
+    ArithmeticFamily.NORMAL,
+    ArithmeticFamily.NEW,
+)
+
+NORMAL_OPERATORS: tuple[Operator, ...] = (
+    Operator.ADD,
+    Operator.SUBTRACT,
+    Operator.MULTIPLY,
+    Operator.FLOOR_DIVIDE,
+)
+NEW_OPERATORS: tuple[Operator, ...] = (
+    Operator.ABS_DIFF,
+    Operator.MAX,
+    Operator.MIN,
+)
+OPERATORS: tuple[Operator, ...] = (*NORMAL_OPERATORS, *NEW_OPERATORS)
+
+DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (
+    DifficultyLevel.L1,
+    DifficultyLevel.L2,
+    DifficultyLevel.L3,
+)
 
 
 # NOTE: Intentional duplication: keep flat manifest rule keys close to Operator values.
@@ -32,11 +80,14 @@ DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_S1, LEVEL_S2, LEVEL_S3)
 Rules = TypedDict(
     "Rules",
     {
+        "+": str,
+        "-": str,
+        "*": str,
+        "/": str,
         "##": str,
         "@@": str,
         "$$": str,
         "evaluation": str,
-        "digits": str,
     },
 )
 
@@ -48,6 +99,7 @@ class ChatMessage(TypedDict):
 
 class DatasetMetadata(TypedDict):
     id: str
+    arithmetic_family: ArithmeticFamily
     difficulty_level: DifficultyLevel
     n_ops: int
     op_seq: list[Operator]
@@ -67,6 +119,7 @@ class PredictionRow(TypedDict):
     is_correct: bool
     format_error: bool
     raw_response: str
+    arithmetic_family: ArithmeticFamily
     difficulty_level: DifficultyLevel
     n_ops: int
     latency_seconds: float
@@ -92,12 +145,14 @@ class Metrics(TypedDict):
     accuracy: float
     format_errors: int
     format_error_rate: float
+    by_family: dict[ArithmeticFamily, BucketMetrics]
     by_difficulty: dict[DifficultyLevel, BucketMetrics]
     by_n_ops: dict[int, BucketMetrics]
 
 
 class ManifestMetadataFields(TypedDict):
     id: str
+    arithmetic_family: str
     difficulty_level: str
     n_ops: str
     op_seq: str
@@ -115,8 +170,11 @@ class Manifest(TypedDict):
     rules: Rules
     requested_num_examples: int
     generated_num_examples: int
+    default_family_mix: dict[ArithmeticFamily, float]
     default_level_mix: dict[DifficultyLevel, float]
+    counts_by_family: dict[ArithmeticFamily, int]
     counts_by_difficulty: dict[DifficultyLevel, int]
+    counts_by_family_and_difficulty: dict[ArithmeticFamily, dict[DifficultyLevel, int]]
     label_histogram: dict[str, int]
     row_fields: ManifestRowFields
     files: list[str]

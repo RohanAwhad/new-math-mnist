@@ -14,6 +14,7 @@ if str(MODULE_ROOT) not in sys.path:
 
 import evaluate
 from contracts import (
+    ArithmeticFamily,
     ChatMessage,
     DatasetRow,
     DifficultyLevel,
@@ -35,14 +36,15 @@ class _FakeClient:
 
 
 class EvaluateUnitTests(unittest.TestCase):
-    def test_parse_final_answer_accepts_single_digit_tag(self) -> None:
+    def test_parse_final_answer_accepts_integer_tag(self) -> None:
         self.assertEqual(
-            evaluate.parse_final_answer("<final_answer>7</final_answer>"), 7
+            evaluate.parse_final_answer("<final_answer>-17</final_answer>"), -17
         )
 
-    def test_parse_final_answer_accepts_embedded_tag(self) -> None:
+    def test_parse_final_answer_accepts_embedded_lenient_tag(self) -> None:
         self.assertEqual(
-            evaluate.parse_final_answer("Answer: <final_answer>7</final_answer>"), 7
+            evaluate.parse_final_answer("Answer: <FINAL_ANSWER> 42 </FINAL_ANSWER>"),
+            42,
         )
 
 
@@ -54,7 +56,8 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "expected_output": 5,
                 "metadata": {
                     "id": "s1_0",
-                    "difficulty_level": DifficultyLevel.S1_PRIMITIVE,
+                    "arithmetic_family": ArithmeticFamily.NEW,
+                    "difficulty_level": DifficultyLevel.L1,
                     "n_ops": 1,
                     "op_seq": [Operator.ABS_DIFF],
                 },
@@ -64,7 +67,8 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "expected_output": 9,
                 "metadata": {
                     "id": "s2_0",
-                    "difficulty_level": DifficultyLevel.S2_COMPOSITION,
+                    "arithmetic_family": ArithmeticFamily.NEW,
+                    "difficulty_level": DifficultyLevel.L2,
                     "n_ops": 1,
                     "op_seq": [Operator.MAX],
                 },
@@ -82,13 +86,16 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(metrics["format_errors"], 1)
         accuracy = float(metrics["accuracy"])
         format_error_rate = float(metrics["format_error_rate"])
+        by_family = dict(metrics["by_family"])
         by_difficulty = dict(metrics["by_difficulty"])
+        by_n_ops = dict(metrics["by_n_ops"])
 
         self.assertAlmostEqual(accuracy, 0.5)
         self.assertAlmostEqual(format_error_rate, 0.5)
-        self.assertIn(DifficultyLevel.S1_PRIMITIVE, by_difficulty)
-        self.assertIn(DifficultyLevel.S2_COMPOSITION, by_difficulty)
-        self.assertIn(1, metrics["by_n_ops"])
+        self.assertIn(ArithmeticFamily.NEW, by_family)
+        self.assertIn(DifficultyLevel.L1, by_difficulty)
+        self.assertIn(DifficultyLevel.L2, by_difficulty)
+        self.assertIn(1, by_n_ops)
 
     def test_write_run_artifacts_writes_metrics_and_predictions(self) -> None:
         predictions: list[PredictionRow] = [
@@ -100,7 +107,8 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
                 "is_correct": True,
                 "format_error": False,
                 "raw_response": "<final_answer>5</final_answer>",
-                "difficulty_level": DifficultyLevel.S1_PRIMITIVE,
+                "arithmetic_family": ArithmeticFamily.NEW,
+                "difficulty_level": DifficultyLevel.L1,
                 "n_ops": 1,
                 "latency_seconds": 0.01,
             }
@@ -111,6 +119,7 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
             "accuracy": 1.0,
             "format_errors": 0,
             "format_error_rate": 0.0,
+            "by_family": {},
             "by_difficulty": {},
             "by_n_ops": {},
         }
@@ -119,10 +128,10 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
             "temperature": 1.0,
             "max_tokens": 64,
             "concurrency": 2,
-            "dataset": "data/new_math_ops_v1/dataset.jsonl",
+            "dataset": "data/new_math_ops_v2/dataset.jsonl",
             "manifest": None,
             "limit": None,
-            "prompt_version": "v1",
+            "prompt_version": "v2",
         }
 
         with tempfile.TemporaryDirectory() as tmp_dir:

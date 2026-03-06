@@ -3,15 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
 from contracts import (
+    ARITHMETIC_FAMILIES,
     DIFFICULTY_LEVELS,
-    LEVEL_S1,
-    LEVEL_S2,
-    LEVEL_S3,
-    OPERATORS,
+    NEW_OPERATORS,
+    NORMAL_OPERATORS,
+    ArithmeticFamily,
     DatasetRow,
     DifficultyLevel,
     Manifest,
@@ -19,25 +20,28 @@ from contracts import (
 )
 
 DIGITS: tuple[int, ...] = tuple(range(10))
-MAX_S1_EXPRESSIONS = len(DIGITS) * len(OPERATORS) * len(DIGITS)
 
-# This mix comes from the previous recommendation with S4 removed and ratios
-# re-normalized.
-DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
-    LEVEL_S1: 0.004,
-    LEVEL_S2: 0.498,
-    LEVEL_S3: 0.498,
+DEFAULT_FAMILY_MIX: dict[ArithmeticFamily, float] = {
+    ArithmeticFamily.NORMAL: 0.5,
+    ArithmeticFamily.NEW: 0.5,
 }
 
+DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
+    DifficultyLevel.L1: 1 / 3,
+    DifficultyLevel.L2: 1 / 3,
+    DifficultyLevel.L3: 1 / 3,
+}
 
-def apply_operator(lhs: int, operator: Operator, rhs: int) -> int:
-    if operator is Operator.ABS_DIFF:
-        return abs(lhs - rhs)
-    if operator is Operator.MAX:
-        return max(lhs, rhs)
-    if operator is Operator.MIN:
-        return min(lhs, rhs)
-    raise ValueError(f"unknown operator: {operator}")
+LEVEL_BOUNDS: dict[DifficultyLevel, tuple[int, int]] = {
+    DifficultyLevel.L1: (1, 5),
+    DifficultyLevel.L2: (6, 10),
+    DifficultyLevel.L3: (11, 20),
+}
+
+OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
+    ArithmeticFamily.NORMAL: NORMAL_OPERATORS,
+    ArithmeticFamily.NEW: NEW_OPERATORS,
+}
 
 
 def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
@@ -46,7 +50,7 @@ def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
 
     value = numbers[0]
     for operator, rhs in zip(operators, numbers[1:], strict=True):
-        value = apply_operator(value, operator, rhs)
+        value = operator.apply(value, rhs)
     return value
 
 
@@ -59,63 +63,67 @@ def render_expression(numbers: list[int], operators: list[Operator]) -> str:
 
 
 def sample_expression(
-    rng: random.Random, min_ops: int, max_ops: int
+    rng: random.Random,
+    min_ops: int,
+    max_ops: int,
+    operator_pool: tuple[Operator, ...],
 ) -> tuple[list[int], list[Operator]]:
     n_ops = rng.randint(min_ops, max_ops)
-    numbers = [rng.randint(0, 9) for _ in range(n_ops + 1)]
-    operators: list[Operator] = [rng.choice(OPERATORS) for _ in range(n_ops)]
+    numbers: list[int] = [rng.randint(0, 9)]
+    operators: list[Operator] = []
+
+    for _ in range(n_ops):
+        operator = rng.choice(operator_pool)
+        rhs = rng.randint(1 if operator is Operator.FLOOR_DIVIDE else 0, 9)
+        operators.append(operator)
+        numbers.append(rhs)
+
     return numbers, operators
 
 
 def allocate_by_ratio(
     total: int,
     ratios: dict[DifficultyLevel, float],
-    levels: tuple[DifficultyLevel, ...],
+    buckets: tuple[DifficultyLevel, ...],
 ) -> dict[DifficultyLevel, int]:
     if total < 0:
         raise ValueError("total must be non-negative")
 
     raw: dict[DifficultyLevel, float] = {
-        level: total * ratios[level] for level in levels
+        bucket: total * ratios[bucket] for bucket in buckets
     }
-    counts: dict[DifficultyLevel, int] = {level: int(raw[level]) for level in levels}
+    counts: dict[DifficultyLevel, int] = {
+        bucket: int(raw[bucket]) for bucket in buckets
+    }
     remainder = total - sum(counts.values())
 
     for level in sorted(
-        levels, key=lambda level: raw[level] - counts[level], reverse=True
+        buckets, key=lambda level: raw[level] - counts[level], reverse=True
     )[:remainder]:
         counts[level] += 1
 
     return counts
 
 
-def allocate_level_counts(num_examples: int) -> dict[DifficultyLevel, int]:
-    counts = allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, DIFFICULTY_LEVELS)
+def allocate_family_counts(num_examples: int) -> dict[ArithmeticFamily, int]:
+    if num_examples % 2 != 0:
+        raise ValueError("num-examples must be even to enforce strict 50/50 families")
 
-    if counts[LEVEL_S1] <= MAX_S1_EXPRESSIONS:
-        return counts
-
-    remaining_total = num_examples - MAX_S1_EXPRESSIONS
-    remaining_levels = (LEVEL_S2, LEVEL_S3)
-    remaining_weight = DEFAULT_LEVEL_MIX[LEVEL_S2] + DEFAULT_LEVEL_MIX[LEVEL_S3]
-    remaining_mix: dict[DifficultyLevel, float] = {
-        LEVEL_S2: DEFAULT_LEVEL_MIX[LEVEL_S2] / remaining_weight,
-        LEVEL_S3: DEFAULT_LEVEL_MIX[LEVEL_S3] / remaining_weight,
-    }
-    remaining_counts = allocate_by_ratio(
-        remaining_total, remaining_mix, remaining_levels
-    )
-
+    per_family = num_examples // 2
     return {
-        LEVEL_S1: MAX_S1_EXPRESSIONS,
-        LEVEL_S2: remaining_counts[LEVEL_S2],
-        LEVEL_S3: remaining_counts[LEVEL_S3],
+        ArithmeticFamily.NORMAL: per_family,
+        ArithmeticFamily.NEW: per_family,
     }
+
+
+def allocate_level_counts(num_examples: int) -> dict[DifficultyLevel, int]:
+    return allocate_by_ratio(num_examples, DEFAULT_LEVEL_MIX, DIFFICULTY_LEVELS)
 
 
 @dataclass(frozen=True, slots=True)
 class Sample:
     sample_id: str
+    arithmetic_family: ArithmeticFamily
     difficulty_level: DifficultyLevel
     input: str
     expected_output: int
@@ -128,6 +136,7 @@ class Sample:
             "expected_output": self.expected_output,
             "metadata": {
                 "id": self.sample_id,
+                "arithmetic_family": self.arithmetic_family,
                 "difficulty_level": self.difficulty_level,
                 "n_ops": self.n_ops,
                 "op_seq": list(self.op_seq),
@@ -135,55 +144,18 @@ class Sample:
         }
 
 
-def generate_s1_primitive(
-    size: int, rng: random.Random, seen: set[str]
-) -> list[Sample]:
-    if size > MAX_S1_EXPRESSIONS:
-        raise ValueError(f"S1 size cannot exceed {MAX_S1_EXPRESSIONS}")
-
-    pool: list[tuple[str, int, Operator]] = []
-    for lhs in DIGITS:
-        for operator in OPERATORS:
-            for rhs in DIGITS:
-                expression = f"{lhs} {operator} {rhs}"
-                target = apply_operator(lhs, operator, rhs)
-                pool.append((expression, target, operator))
-
-    rng.shuffle(pool)
-
-    samples: list[Sample] = []
-    for expression, target, operator in pool:
-        if len(samples) == size:
-            break
-
-        if expression in seen:
-            continue
-
-        samples.append(
-            Sample(
-                sample_id=f"s1_{len(samples):06d}",
-                difficulty_level=LEVEL_S1,
-                input=expression,
-                expected_output=target,
-                n_ops=1,
-                op_seq=(operator,),
-            )
-        )
-        seen.add(expression)
-
-    return samples
-
-
 def generate_random_level(
     *,
+    arithmetic_family: ArithmeticFamily,
     difficulty_level: DifficultyLevel,
     sample_prefix: str,
     size: int,
-    min_ops: int,
-    max_ops: int,
     rng: random.Random,
     seen: set[str],
 ) -> list[Sample]:
+    min_ops, max_ops = LEVEL_BOUNDS[difficulty_level]
+    operator_pool = OPERATORS_BY_FAMILY[arithmetic_family]
+
     samples: list[Sample] = []
     attempts = 0
     max_attempts = max(size * 500, 100_000)
@@ -196,7 +168,12 @@ def generate_random_level(
                 f"{difficulty_level}; requested={size}, got={len(samples)}"
             )
 
-        numbers, operators = sample_expression(rng, min_ops, max_ops)
+        numbers, operators = sample_expression(
+            rng,
+            min_ops,
+            max_ops,
+            operator_pool,
+        )
         expression = render_expression(numbers, operators)
         if expression in seen:
             continue
@@ -206,6 +183,7 @@ def generate_random_level(
         samples.append(
             Sample(
                 sample_id=f"{sample_prefix}_{len(samples):06d}",
+                arithmetic_family=arithmetic_family,
                 difficulty_level=difficulty_level,
                 input=expression,
                 expected_output=target,
@@ -219,10 +197,8 @@ def generate_random_level(
 
 
 def build_label_histogram(samples: list[Sample]) -> dict[str, int]:
-    counts = {digit: 0 for digit in DIGITS}
-    for sample in samples:
-        counts[sample.expected_output] += 1
-    return {str(label): count for label, count in counts.items()}
+    counter = Counter(sample.expected_output for sample in samples)
+    return {str(label): counter[label] for label in sorted(counter)}
 
 
 def write_jsonl(path: Path, rows: list[DatasetRow]) -> None:
@@ -247,66 +223,80 @@ def main() -> None:
 
     if args.num_examples < 0:
         raise ValueError("num-examples must be non-negative")
+    if args.num_examples % 2 != 0:
+        raise ValueError("num-examples must be even for strict 50/50 family split")
 
     output_dir: Path = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    counts_by_level = allocate_level_counts(args.num_examples)
+    counts_by_family = allocate_family_counts(args.num_examples)
+    counts_by_family_and_difficulty: dict[
+        ArithmeticFamily, dict[DifficultyLevel, int]
+    ] = {
+        family: allocate_level_counts(counts_by_family[family])
+        for family in ARITHMETIC_FAMILIES
+    }
+    counts_by_difficulty: dict[DifficultyLevel, int] = {
+        level: sum(
+            counts_by_family_and_difficulty[family][level]
+            for family in ARITHMETIC_FAMILIES
+        )
+        for level in DIFFICULTY_LEVELS
+    }
 
     seen_expressions: set[str] = set()
-    rng_s1 = random.Random(args.seed + 11)
-    rng_s2 = random.Random(args.seed + 29)
-    rng_s3 = random.Random(args.seed + 47)
     rng_shuffle = random.Random(args.seed + 101)
 
-    s1_samples = generate_s1_primitive(
-        counts_by_level[LEVEL_S1], rng_s1, seen_expressions
-    )
-    s2_samples = generate_random_level(
-        difficulty_level=LEVEL_S2,
-        sample_prefix="s2",
-        size=counts_by_level[LEVEL_S2],
-        min_ops=2,
-        max_ops=8,
-        rng=rng_s2,
-        seen=seen_expressions,
-    )
-    s3_samples = generate_random_level(
-        difficulty_level=LEVEL_S3,
-        sample_prefix="s3",
-        size=counts_by_level[LEVEL_S3],
-        min_ops=8,
-        max_ops=20,
-        rng=rng_s3,
-        seen=seen_expressions,
-    )
+    all_samples: list[Sample] = []
+    for family_index, family in enumerate(ARITHMETIC_FAMILIES):
+        for level_index, difficulty_level in enumerate(DIFFICULTY_LEVELS):
+            bucket_size = counts_by_family_and_difficulty[family][difficulty_level]
+            bucket_seed = args.seed + (family_index * 1000) + (level_index * 100) + 11
+            rng_bucket = random.Random(bucket_seed)
+            sample_prefix = f"{family.value}_{difficulty_level.value.lower()}"
+            all_samples.extend(
+                generate_random_level(
+                    arithmetic_family=family,
+                    difficulty_level=difficulty_level,
+                    sample_prefix=sample_prefix,
+                    size=bucket_size,
+                    rng=rng_bucket,
+                    seen=seen_expressions,
+                )
+            )
 
-    all_samples = [*s1_samples, *s2_samples, *s3_samples]
     rng_shuffle.shuffle(all_samples)
 
     dataset_path = output_dir / "dataset.jsonl"
     write_jsonl(dataset_path, [sample.to_dict() for sample in all_samples])
 
     manifest: Manifest = {
-        "benchmark_name": "new_math_ops_v1",
+        "benchmark_name": "new_math_ops_v2",
         "seed": args.seed,
         "rules": {
+            "+": "a+b",
+            "-": "a-b",
+            "*": "a*b",
+            "/": "floor(a/b), b!=0",
             "##": "abs(a-b)",
             "@@": "max(a,b)",
             "$$": "min(a,b)",
-            "evaluation": "left_to_right",
-            "digits": "0..9",
+            "evaluation": "strict_left_to_right_no_precedence",
         },
         "requested_num_examples": args.num_examples,
         "generated_num_examples": len(all_samples),
+        "default_family_mix": DEFAULT_FAMILY_MIX,
         "default_level_mix": DEFAULT_LEVEL_MIX,
-        "counts_by_difficulty": counts_by_level,
+        "counts_by_family": counts_by_family,
+        "counts_by_difficulty": counts_by_difficulty,
+        "counts_by_family_and_difficulty": counts_by_family_and_difficulty,
         "label_histogram": build_label_histogram(all_samples),
         "row_fields": {
             "input": "str",
             "expected_output": "int",
             "metadata": {
                 "id": "str",
+                "arithmetic_family": "str",
                 "difficulty_level": "str",
                 "n_ops": "int",
                 "op_seq": "list[str]",
@@ -321,7 +311,16 @@ def main() -> None:
     )
 
     print(f"wrote dataset to {output_dir}")
-    print(json.dumps({"rows": len(all_samples), **counts_by_level}, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "rows": len(all_samples),
+                "counts_by_family": counts_by_family,
+                "counts_by_difficulty": counts_by_difficulty,
+            },
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":

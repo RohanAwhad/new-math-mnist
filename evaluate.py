@@ -12,6 +12,7 @@ from pathlib import Path
 import llm_client
 import prompts
 from contracts import (
+    ArithmeticFamily,
     BucketCounts,
     BucketMetrics,
     LLMCompletionClient,
@@ -24,7 +25,10 @@ from contracts import (
 from tqdm import tqdm
 
 
-FINAL_ANSWER_PATTERN = re.compile(r"<final_answer>\s*([0-9])\s*</final_answer>")
+FINAL_ANSWER_PATTERN = re.compile(
+    r"<\s*final_answer\s*>\s*(-?\d+)\s*<\s*/\s*final_answer\s*>",
+    re.IGNORECASE,
+)
 
 
 def parse_final_answer(text: str) -> int | None:
@@ -76,21 +80,30 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     correct = sum(1 for row in predictions if bool(row["is_correct"]))
     format_errors = sum(1 for row in predictions if bool(row["format_error"]))
 
+    by_family: defaultdict[ArithmeticFamily, BucketCounts] = defaultdict(_init_bucket)
     by_difficulty: defaultdict[DifficultyLevel, BucketCounts] = defaultdict(
         _init_bucket
     )
     by_n_ops: defaultdict[int, BucketCounts] = defaultdict(_init_bucket)
 
     for row in predictions:
+        arithmetic_family = row["arithmetic_family"]
         difficulty = row["difficulty_level"]
         n_ops_key = row["n_ops"]
 
-        for bucket in (by_difficulty[difficulty], by_n_ops[n_ops_key]):
+        for bucket in (
+            by_family[arithmetic_family],
+            by_difficulty[difficulty],
+            by_n_ops[n_ops_key],
+        ):
             bucket["total"] += 1
             bucket["correct"] += int(row["is_correct"])
             if bool(row["format_error"]):
                 bucket["format_errors"] += 1
 
+    by_family_metrics: dict[ArithmeticFamily, BucketMetrics] = {
+        key: _finalize_bucket(bucket) for key, bucket in by_family.items()
+    }
     by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {
         key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
     }
@@ -107,6 +120,7 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
         "accuracy": accuracy,
         "format_errors": format_errors,
         "format_error_rate": format_error_rate,
+        "by_family": by_family_metrics,
         "by_difficulty": by_difficulty_metrics,
         "by_n_ops": by_n_ops_metrics,
     }
@@ -143,6 +157,7 @@ async def evaluate_dataset_rows(
                 "is_correct": is_correct,
                 "format_error": format_error,
                 "raw_response": raw_response,
+                "arithmetic_family": metadata["arithmetic_family"],
                 "difficulty_level": metadata["difficulty_level"],
                 "n_ops": metadata["n_ops"],
                 "latency_seconds": round(latency, 6),
