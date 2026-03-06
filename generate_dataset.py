@@ -33,9 +33,9 @@ DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
 }
 
 LEVEL_BOUNDS: dict[DifficultyLevel, tuple[int, int]] = {
-    DifficultyLevel.L1: (1, 5),
-    DifficultyLevel.L2: (6, 10),
-    DifficultyLevel.L3: (11, 20),
+    DifficultyLevel.L1: (1, 2),
+    DifficultyLevel.L2: (3, 6),
+    DifficultyLevel.L3: (6, 10),
 }
 
 OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
@@ -44,10 +44,19 @@ OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
 }
 
 
-def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
+def evaluate_expression(
+    numbers: list[int],
+    operators: list[Operator],
+    arithmetic_family: ArithmeticFamily,
+) -> int:
     if len(numbers) != len(operators) + 1:
         raise ValueError("numbers must be exactly one longer than operators")
 
+    if arithmetic_family is ArithmeticFamily.NORMAL:
+        expr = render_expression(numbers, operators).replace(" / ", " // ")
+        return int(eval(expr))
+
+    # NEW family: left-to-right, no precedence
     value = numbers[0]
     for operator, rhs in zip(operators, numbers[1:], strict=True):
         value = operator.apply(value, rhs)
@@ -169,7 +178,7 @@ def generate_random_level(
         if expression in seen:
             continue
 
-        target = evaluate_expression(numbers, operators)
+        target = evaluate_expression(numbers, operators, arithmetic_family)
 
         samples.append(
             Sample(
@@ -264,7 +273,7 @@ def main() -> None:
             "##": "abs(a-b)",
             "@@": "max(a,b)",
             "$$": "min(a,b)",
-            "evaluation": "strict_left_to_right_no_precedence",
+            "evaluation": "normal=standard_precedence, new=left_to_right",
         },
         "requested_num_examples": args.num_examples,
         "generated_num_examples": len(all_samples),
