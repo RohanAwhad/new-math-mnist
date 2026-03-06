@@ -15,11 +15,6 @@ if str(MODULE_ROOT) not in sys.path:
 
 import generate_dataset
 from contracts import (
-    FAMILY_NEW,
-    FAMILY_NORMAL,
-    LEVEL_L1,
-    LEVEL_L2,
-    LEVEL_L3,
     ArithmeticFamily,
     DifficultyLevel,
     Operator,
@@ -34,17 +29,17 @@ class GenerateDatasetTests(unittest.TestCase):
         self.assertEqual(
             generate_dataset.allocate_family_counts(120),
             {
-                FAMILY_NORMAL: 60,
-                FAMILY_NEW: 60,
+                ArithmeticFamily.NORMAL: 60,
+                ArithmeticFamily.NEW: 60,
             },
         )
 
     def test_allocate_level_counts_uses_equal_thirds(self) -> None:
         counts = generate_dataset.allocate_level_counts(60)
         self.assertEqual(sum(counts.values()), 60)
-        self.assertEqual(counts[LEVEL_L1], 20)
-        self.assertEqual(counts[LEVEL_L2], 20)
-        self.assertEqual(counts[LEVEL_L3], 20)
+        self.assertEqual(counts[DifficultyLevel.L1], 20)
+        self.assertEqual(counts[DifficultyLevel.L2], 20)
+        self.assertEqual(counts[DifficultyLevel.L3], 20)
 
     def test_build_label_histogram_supports_multi_digit_and_negative(self) -> None:
         samples = [

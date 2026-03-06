@@ -28,9 +28,10 @@ class DifficultyLevel(str, Enum):
 
 ChatRole = Literal["system", "user"]
 
-FAMILY_NORMAL: ArithmeticFamily = ArithmeticFamily.NORMAL
-FAMILY_NEW: ArithmeticFamily = ArithmeticFamily.NEW
-ARITHMETIC_FAMILIES: tuple[ArithmeticFamily, ...] = (FAMILY_NORMAL, FAMILY_NEW)
+ARITHMETIC_FAMILIES: tuple[ArithmeticFamily, ...] = (
+    ArithmeticFamily.NORMAL,
+    ArithmeticFamily.NEW,
+)
 
 NORMAL_OPERATORS: tuple[Operator, ...] = (
     Operator.ADD,
@@ -45,10 +46,11 @@ NEW_OPERATORS: tuple[Operator, ...] = (
 )
 OPERATORS: tuple[Operator, ...] = (*NORMAL_OPERATORS, *NEW_OPERATORS)
 
-LEVEL_L1: DifficultyLevel = DifficultyLevel.L1
-LEVEL_L2: DifficultyLevel = DifficultyLevel.L2
-LEVEL_L3: DifficultyLevel = DifficultyLevel.L3
-DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (LEVEL_L1, LEVEL_L2, LEVEL_L3)
+DIFFICULTY_LEVELS: tuple[DifficultyLevel, ...] = (
+    DifficultyLevel.L1,
+    DifficultyLevel.L2,
+    DifficultyLevel.L3,
+)
 
 
 # NOTE: Intentional duplication: keep flat manifest rule keys close to Operator values.

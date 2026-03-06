@@ -11,11 +11,6 @@ from typing import TypeVar
 from contracts import (
     ARITHMETIC_FAMILIES,
     DIFFICULTY_LEVELS,
-    FAMILY_NEW,
-    FAMILY_NORMAL,
-    LEVEL_L1,
-    LEVEL_L2,
-    LEVEL_L3,
     NEW_OPERATORS,
     NORMAL_OPERATORS,
     ArithmeticFamily,
@@ -28,25 +23,25 @@ from contracts import (
 DIGITS: tuple[int, ...] = tuple(range(10))
 
 DEFAULT_FAMILY_MIX: dict[ArithmeticFamily, float] = {
-    FAMILY_NORMAL: 0.5,
-    FAMILY_NEW: 0.5,
+    ArithmeticFamily.NORMAL: 0.5,
+    ArithmeticFamily.NEW: 0.5,
 }
 
 DEFAULT_LEVEL_MIX: dict[DifficultyLevel, float] = {
-    LEVEL_L1: 1 / 3,
-    LEVEL_L2: 1 / 3,
-    LEVEL_L3: 1 / 3,
+    DifficultyLevel.L1: 1 / 3,
+    DifficultyLevel.L2: 1 / 3,
+    DifficultyLevel.L3: 1 / 3,
 }
 
 LEVEL_BOUNDS: dict[DifficultyLevel, tuple[int, int]] = {
-    LEVEL_L1: (1, 5),
-    LEVEL_L2: (6, 10),
-    LEVEL_L3: (11, 20),
+    DifficultyLevel.L1: (1, 5),
+    DifficultyLevel.L2: (6, 10),
+    DifficultyLevel.L3: (11, 20),
 }
 
 OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
-    FAMILY_NORMAL: NORMAL_OPERATORS,
-    FAMILY_NEW: NEW_OPERATORS,
+    ArithmeticFamily.NORMAL: NORMAL_OPERATORS,
+    ArithmeticFamily.NEW: NEW_OPERATORS,
 }
 
 BucketKey = TypeVar("BucketKey")
@@ -137,8 +132,8 @@ def allocate_family_counts(num_examples: int) -> dict[ArithmeticFamily, int]:
 
     per_family = num_examples // 2
     return {
-        FAMILY_NORMAL: per_family,
-        FAMILY_NEW: per_family,
+        ArithmeticFamily.NORMAL: per_family,
+        ArithmeticFamily.NEW: per_family,
     }
 
 
