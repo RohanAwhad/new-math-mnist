@@ -6,7 +6,6 @@ import random
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeVar
 
 from contracts import (
     ARITHMETIC_FAMILIES,
@@ -43,8 +42,6 @@ OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
     ArithmeticFamily.NORMAL: NORMAL_OPERATORS,
     ArithmeticFamily.NEW: NEW_OPERATORS,
 }
-
-BucketKey = TypeVar("BucketKey")
 
 
 def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
@@ -86,14 +83,18 @@ def sample_expression(
 
 def allocate_by_ratio(
     total: int,
-    ratios: dict[BucketKey, float],
-    buckets: tuple[BucketKey, ...],
-) -> dict[BucketKey, int]:
+    ratios: dict[DifficultyLevel, float],
+    buckets: tuple[DifficultyLevel, ...],
+) -> dict[DifficultyLevel, int]:
     if total < 0:
         raise ValueError("total must be non-negative")
 
-    raw: dict[BucketKey, float] = {bucket: total * ratios[bucket] for bucket in buckets}
-    counts: dict[BucketKey, int] = {bucket: int(raw[bucket]) for bucket in buckets}
+    raw: dict[DifficultyLevel, float] = {
+        bucket: total * ratios[bucket] for bucket in buckets
+    }
+    counts: dict[DifficultyLevel, int] = {
+        bucket: int(raw[bucket]) for bucket in buckets
+    }
     remainder = total - sum(counts.values())
 
     for level in sorted(
