@@ -9,21 +9,21 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from tqdm import tqdm
+
 import llm_client
 import prompts
 from contracts import (
     ArithmeticFamily,
     BucketCounts,
     BucketMetrics,
-    LLMCompletionClient,
     DatasetRow,
     DifficultyLevel,
+    LLMCompletionClient,
     Metrics,
     PredictionRow,
     RunConfig,
 )
-from tqdm import tqdm
-
 
 FINAL_ANSWER_PATTERN = re.compile(
     r"<\s*final_answer\s*>\s*(-?\d+)\s*<\s*/\s*final_answer\s*>",
@@ -81,9 +81,7 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     format_errors = sum(1 for row in predictions if bool(row["format_error"]))
 
     by_family: defaultdict[ArithmeticFamily, BucketCounts] = defaultdict(_init_bucket)
-    by_difficulty: defaultdict[DifficultyLevel, BucketCounts] = defaultdict(
-        _init_bucket
-    )
+    by_difficulty: defaultdict[DifficultyLevel, BucketCounts] = defaultdict(_init_bucket)
     by_n_ops: defaultdict[int, BucketCounts] = defaultdict(_init_bucket)
 
     for row in predictions:
@@ -107,9 +105,7 @@ def compute_metrics(predictions: list[PredictionRow]) -> Metrics:
     by_difficulty_metrics: dict[DifficultyLevel, BucketMetrics] = {
         key: _finalize_bucket(bucket) for key, bucket in by_difficulty.items()
     }
-    by_n_ops_metrics: dict[int, BucketMetrics] = {
-        key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()
-    }
+    by_n_ops_metrics: dict[int, BucketMetrics] = {key: _finalize_bucket(bucket) for key, bucket in by_n_ops.items()}
 
     accuracy = (correct / total) if total else 0.0
     format_error_rate = (format_errors / total) if total else 0.0
@@ -203,23 +199,17 @@ def write_run_artifacts(
     )
 
     config_path = run_dir / "run_config.json"
-    config_path.write_text(
-        json.dumps(run_config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    config_path.write_text(json.dumps(run_config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     return run_dir
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Evaluate models on New Math Ops dataset"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate models on New Math Ops dataset")
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, default=None)
     parser.add_argument("--model", type=str, required=True)
-    parser.add_argument(
-        "--output-dir", type=Path, default=Path("benchmarks/new_math_ops/runs")
-    )
+    parser.add_argument("--output-dir", type=Path, default=Path("benchmarks/new_math_ops/runs"))
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--max-tokens", type=int, default=64)
     parser.add_argument("--concurrency", type=int, default=20)

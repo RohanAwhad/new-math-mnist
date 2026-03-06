@@ -11,5 +11,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=1.19.1",
+    "ruff>=0.11.0",
     "types-tqdm>=4.67.3.20260303",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

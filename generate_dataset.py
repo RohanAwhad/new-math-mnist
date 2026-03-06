@@ -89,17 +89,11 @@ def allocate_by_ratio(
     if total < 0:
         raise ValueError("total must be non-negative")
 
-    raw: dict[DifficultyLevel, float] = {
-        bucket: total * ratios[bucket] for bucket in buckets
-    }
-    counts: dict[DifficultyLevel, int] = {
-        bucket: int(raw[bucket]) for bucket in buckets
-    }
+    raw: dict[DifficultyLevel, float] = {bucket: total * ratios[bucket] for bucket in buckets}
+    counts: dict[DifficultyLevel, int] = {bucket: int(raw[bucket]) for bucket in buckets}
     remainder = total - sum(counts.values())
 
-    for level in sorted(
-        buckets, key=lambda level: raw[level] - counts[level], reverse=True
-    )[:remainder]:
+    for level in sorted(buckets, key=lambda level: raw[level] - counts[level], reverse=True)[:remainder]:
         counts[level] += 1
 
     return counts
@@ -163,10 +157,7 @@ def generate_random_level(
     while len(samples) < size:
         attempts += 1
         if attempts > max_attempts:
-            raise ValueError(
-                "generation stalled for "
-                f"{difficulty_level}; requested={size}, got={len(samples)}"
-            )
+            raise ValueError(f"generation stalled for {difficulty_level}; requested={size}, got={len(samples)}")
 
         numbers, operators = sample_expression(
             rng,
@@ -209,9 +200,7 @@ def write_jsonl(path: Path, rows: list[DatasetRow]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Generate deterministic new-math synthetic benchmark"
-    )
+    parser = argparse.ArgumentParser(description="Generate deterministic new-math synthetic benchmark")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=20260304)
     parser.add_argument("--num-examples", type=int, default=70_300)
@@ -230,17 +219,11 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     counts_by_family = allocate_family_counts(args.num_examples)
-    counts_by_family_and_difficulty: dict[
-        ArithmeticFamily, dict[DifficultyLevel, int]
-    ] = {
-        family: allocate_level_counts(counts_by_family[family])
-        for family in ARITHMETIC_FAMILIES
+    counts_by_family_and_difficulty: dict[ArithmeticFamily, dict[DifficultyLevel, int]] = {
+        family: allocate_level_counts(counts_by_family[family]) for family in ARITHMETIC_FAMILIES
     }
     counts_by_difficulty: dict[DifficultyLevel, int] = {
-        level: sum(
-            counts_by_family_and_difficulty[family][level]
-            for family in ARITHMETIC_FAMILIES
-        )
+        level: sum(counts_by_family_and_difficulty[family][level] for family in ARITHMETIC_FAMILIES)
         for level in DIFFICULTY_LEVELS
     }
 
@@ -306,9 +289,7 @@ def main() -> None:
     }
 
     manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"wrote dataset to {output_dir}")
     print(

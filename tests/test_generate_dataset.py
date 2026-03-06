@@ -8,7 +8,6 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
@@ -101,9 +100,7 @@ class GenerateDatasetTests(unittest.TestCase):
             self.assertTrue(dataset_path.exists())
             self.assertTrue(manifest_path.exists())
 
-            dataset_lines = (
-                dataset_path.read_text(encoding="utf-8").strip().splitlines()
-            )
+            dataset_lines = dataset_path.read_text(encoding="utf-8").strip().splitlines()
             self.assertEqual(len(dataset_lines), 120)
             rows = [json.loads(line) for line in dataset_lines]
 
@@ -120,9 +117,7 @@ class GenerateDatasetTests(unittest.TestCase):
             new_ops = {"##", "@@", "$$"}
 
             for row in rows:
-                self.assertEqual(
-                    set(row.keys()), {"input", "expected_output", "metadata"}
-                )
+                self.assertEqual(set(row.keys()), {"input", "expected_output", "metadata"})
 
                 metadata = row["metadata"]
                 family = metadata["arithmetic_family"]
@@ -173,15 +168,9 @@ class GenerateDatasetTests(unittest.TestCase):
             self.assertEqual(manifest["counts_by_difficulty"]["L1"], 40)
             self.assertEqual(manifest["counts_by_difficulty"]["L2"], 40)
             self.assertEqual(manifest["counts_by_difficulty"]["L3"], 40)
-            self.assertEqual(
-                manifest["counts_by_family_and_difficulty"]["normal"]["L1"], 20
-            )
-            self.assertEqual(
-                manifest["counts_by_family_and_difficulty"]["new"]["L3"], 20
-            )
-            self.assertEqual(
-                manifest["row_fields"]["metadata"]["arithmetic_family"], "str"
-            )
+            self.assertEqual(manifest["counts_by_family_and_difficulty"]["normal"]["L1"], 20)
+            self.assertEqual(manifest["counts_by_family_and_difficulty"]["new"]["L3"], 20)
+            self.assertEqual(manifest["row_fields"]["metadata"]["arithmetic_family"], "str")
 
             self.assertEqual(sum(manifest["label_histogram"].values()), 120)
 

@@ -4,7 +4,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
@@ -28,9 +27,7 @@ class LiteLLMClientTests(unittest.IsolatedAsyncioTestCase):
                 ]
             }
 
-        client = llm_client.LiteLLMClient(
-            model="openai/test", acompletion_fn=fake_acompletion
-        )
+        client = llm_client.LiteLLMClient(model="openai/test", acompletion_fn=fake_acompletion)
         response_text = await client.complete([{"role": "user", "content": "x"}])
 
         self.assertEqual(response_text, "<final_answer>7</final_answer>")
@@ -52,9 +49,7 @@ class LiteLLMClientTests(unittest.IsolatedAsyncioTestCase):
                 ]
             }
 
-        client = llm_client.LiteLLMClient(
-            model="openai/test", acompletion_fn=fake_acompletion
-        )
+        client = llm_client.LiteLLMClient(model="openai/test", acompletion_fn=fake_acompletion)
         response_text = await client.complete([{"role": "user", "content": "x"}])
 
         self.assertEqual(response_text, "<final_answer>4</final_answer>")

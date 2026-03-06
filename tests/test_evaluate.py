@@ -7,7 +7,6 @@ import unittest
 from collections.abc import Sequence
 from pathlib import Path
 
-
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
@@ -37,9 +36,7 @@ class _FakeClient:
 
 class EvaluateUnitTests(unittest.TestCase):
     def test_parse_final_answer_accepts_integer_tag(self) -> None:
-        self.assertEqual(
-            evaluate.parse_final_answer("<final_answer>-17</final_answer>"), -17
-        )
+        self.assertEqual(evaluate.parse_final_answer("<final_answer>-17</final_answer>"), -17)
 
     def test_parse_final_answer_accepts_embedded_lenient_tag(self) -> None:
         self.assertEqual(
@@ -147,12 +144,7 @@ class EvaluateAsyncTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue((run_dir / "metrics.json").exists())
             self.assertTrue((run_dir / "run_config.json").exists())
 
-            lines = (
-                (run_dir / "predictions.jsonl")
-                .read_text(encoding="utf-8")
-                .strip()
-                .splitlines()
-            )
+            lines = (run_dir / "predictions.jsonl").read_text(encoding="utf-8").strip().splitlines()
             self.assertEqual(len(lines), 1)
             row = json.loads(lines[0])
             self.assertEqual(row["id"], "s1_0")

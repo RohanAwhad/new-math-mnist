@@ -5,7 +5,6 @@ from typing import Any
 
 from contracts import ChatMessage
 
-
 ACompletionFn = Callable[..., Awaitable[object]]
 
 
