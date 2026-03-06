@@ -37,6 +37,15 @@ python benchmarks/new_math_ops/evaluate.py \
   --concurrency 20
 ```
 
+## Dev setup
+
+```bash
+uv sync
+uv run pre-commit install
+```
+
+This installs a git hook that runs ruff (format + lint) and mypy on every commit.
+
 ## Typing and tests
 
 ```bash
