@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+import operator as py_operator
+from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Literal, Protocol, TypedDict
 
@@ -10,14 +11,34 @@ class ArithmeticFamily(str, Enum):
     NEW = "new"
 
 
+BinaryOperatorFn = Callable[[int, int], int]
+
+
+def _floor_divide(lhs: int, rhs: int) -> int:
+    if rhs == 0:
+        raise ValueError("division by zero")
+    return lhs // rhs
+
+
 class Operator(str, Enum):
-    ADD = "+"
-    SUBTRACT = "-"
-    MULTIPLY = "*"
-    FLOOR_DIVIDE = "/"
-    ABS_DIFF = "##"
-    MAX = "@@"
-    MIN = "$$"
+    ADD = ("+", py_operator.add)
+    SUBTRACT = ("-", py_operator.sub)
+    MULTIPLY = ("*", py_operator.mul)
+    FLOOR_DIVIDE = ("/", _floor_divide)
+    ABS_DIFF = ("##", lambda lhs, rhs: abs(lhs - rhs))
+    MAX = ("@@", max)
+    MIN = ("$$", min)
+
+    _impl: BinaryOperatorFn
+
+    def __new__(cls, symbol: str, impl: BinaryOperatorFn) -> Operator:
+        instance = str.__new__(cls, symbol)
+        instance._value_ = symbol
+        instance._impl = impl
+        return instance
+
+    def apply(self, lhs: int, rhs: int) -> int:
+        return self._impl(lhs, rhs)
 
 
 class DifficultyLevel(str, Enum):

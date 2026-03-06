@@ -47,33 +47,13 @@ OPERATORS_BY_FAMILY: dict[ArithmeticFamily, tuple[Operator, ...]] = {
 BucketKey = TypeVar("BucketKey")
 
 
-def apply_operator(lhs: int, operator: Operator, rhs: int) -> int:
-    if operator is Operator.ADD:
-        return lhs + rhs
-    if operator is Operator.SUBTRACT:
-        return lhs - rhs
-    if operator is Operator.MULTIPLY:
-        return lhs * rhs
-    if operator is Operator.FLOOR_DIVIDE:
-        if rhs == 0:
-            raise ValueError("division by zero")
-        return lhs // rhs
-    if operator is Operator.ABS_DIFF:
-        return abs(lhs - rhs)
-    if operator is Operator.MAX:
-        return max(lhs, rhs)
-    if operator is Operator.MIN:
-        return min(lhs, rhs)
-    raise ValueError(f"unknown operator: {operator}")
-
-
 def evaluate_expression(numbers: list[int], operators: list[Operator]) -> int:
     if len(numbers) != len(operators) + 1:
         raise ValueError("numbers must be exactly one longer than operators")
 
     value = numbers[0]
     for operator, rhs in zip(operators, numbers[1:], strict=True):
-        value = apply_operator(value, operator, rhs)
+        value = operator.apply(value, rhs)
     return value
 
 
