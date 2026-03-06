@@ -77,11 +77,7 @@ def sample_expression(
 
     for _ in range(n_ops):
         operator = rng.choice(operator_pool)
-        rhs = (
-            rng.randint(1, 9)
-            if operator in (Operator.FLOOR_DIVIDE,)
-            else rng.randint(0, 9)
-        )
+        rhs = rng.randint(1 if operator is Operator.FLOOR_DIVIDE else 0, 9)
         operators.append(operator)
         numbers.append(rhs)
 
