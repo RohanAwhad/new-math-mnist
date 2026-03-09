@@ -46,6 +46,21 @@ uv run pre-commit install
 
 This installs a git hook that runs ruff (format + lint) and mypy on every commit.
 
+## Install as dependency
+
+```bash
+uv add "new-math-ops @ git+https://github.com/RohanAwhad/new-math-mnist.git@<commit_sha>"
+```
+
+Then import from Python:
+
+```python
+import new_math_ops
+
+messages = new_math_ops.build_messages("9 / 2 ## 3")
+answer = new_math_ops.parse_final_answer("<final_answer>1</final_answer>")
+```
+
 ## Typing and tests
 
 ```bash

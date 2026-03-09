@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "new-math-ops"
 version = "0.1.0"
@@ -21,3 +25,10 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+
+[tool.setuptools]
+py-modules = ["contracts", "evaluate", "generate_dataset", "llm_client", "prompts"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["new_math_ops*"]
