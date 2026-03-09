@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from contracts import ChatMessage, DatasetRow, Metrics, PredictionRow, RunConfig
-from evaluate import (
+from .contracts import ChatMessage, DatasetRow, Metrics, PredictionRow, RunConfig
+from .evaluate import (
     compute_metrics,
     evaluate_dataset_rows,
     load_dataset_rows,
     parse_final_answer,
     write_run_artifacts,
 )
-from llm_client import LiteLLMClient
-from prompts import PROMPT_VERSION, SYSTEM_PROMPT, USER_TEMPLATE, build_messages
+from .llm_client import LiteLLMClient
+from .prompts import PROMPT_VERSION, SYSTEM_PROMPT, USER_TEMPLATE, build_messages
 
 __all__ = [
     "ChatMessage",
