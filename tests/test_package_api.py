@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-MODULE_ROOT = Path(__file__).resolve().parents[1]
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
-
-import new_math_ops  # noqa: E402
+import new_math_ops
 
 
 class PackageAPITests(unittest.TestCase):

@@ -8,12 +8,8 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-MODULE_ROOT = Path(__file__).resolve().parents[1]
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
-
-import new_math_ops.generate_dataset as generate_dataset  # noqa: E402
-from new_math_ops.contracts import (  # noqa: E402
+import new_math_ops.generate_dataset as generate_dataset
+from new_math_ops.contracts import (
     ArithmeticFamily,
     DifficultyLevel,
     Operator,

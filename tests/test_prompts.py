@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-import sys
 import unittest
-from pathlib import Path
 
-MODULE_ROOT = Path(__file__).resolve().parents[1]
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
-
-import new_math_ops.prompts as prompts  # noqa: E402
+import new_math_ops.prompts as prompts
 
 
 class PromptTests(unittest.TestCase):
