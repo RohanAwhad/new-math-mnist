@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "litellm>=1.82.0",
+    "tqdm>=4.67.0",
 ]
 
 [dependency-groups]
@@ -25,9 +26,6 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-
-[tool.setuptools]
-py-modules = ["contracts", "evaluate", "generate_dataset", "llm_client", "prompts"]
 
 [tool.setuptools.packages.find]
 where = ["."]

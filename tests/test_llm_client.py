@@ -8,7 +8,7 @@ MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
 
-import llm_client
+import new_math_ops.llm_client as llm_client  # noqa: E402
 
 
 class LiteLLMClientTests(unittest.IsolatedAsyncioTestCase):

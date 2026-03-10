@@ -11,8 +11,8 @@ MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
 
-import evaluate
-from contracts import (
+import new_math_ops.evaluate as evaluate  # noqa: E402
+from new_math_ops.contracts import (  # noqa: E402
     ArithmeticFamily,
     ChatMessage,
     DatasetRow,

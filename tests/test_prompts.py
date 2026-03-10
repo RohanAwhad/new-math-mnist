@@ -8,7 +8,7 @@ MODULE_ROOT = Path(__file__).resolve().parents[1]
 if str(MODULE_ROOT) not in sys.path:
     sys.path.insert(0, str(MODULE_ROOT))
 
-import prompts
+import new_math_ops.prompts as prompts  # noqa: E402
 
 
 class PromptTests(unittest.TestCase):
@@ -17,8 +17,8 @@ class PromptTests(unittest.TestCase):
 
         self.assertEqual(len(messages), 2)
         self.assertEqual(messages[0]["role"], "system")
-        self.assertIn("a / b = floor(a / b)", messages[0]["content"])
-        self.assertIn("a ## b = abs(a - b)", messages[0]["content"])
+        self.assertIn("strictly left-to-right", messages[0]["content"])
+        self.assertIn("Do not apply precedence", messages[0]["content"])
 
         self.assertEqual(messages[1]["role"], "user")
         self.assertIn("Expression: 9 / 2 ## 3", messages[1]["content"])
