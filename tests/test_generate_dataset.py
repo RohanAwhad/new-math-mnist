@@ -8,12 +8,8 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-MODULE_ROOT = Path(__file__).resolve().parents[1]
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
-
-import generate_dataset
-from contracts import (
+import new_math_ops.generate_dataset as generate_dataset
+from new_math_ops.contracts import (
     ArithmeticFamily,
     DifficultyLevel,
     Operator,
@@ -78,12 +74,12 @@ class GenerateDatasetTests(unittest.TestCase):
 
     def test_cli_writes_single_dataset_and_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            script_path = MODULE_ROOT / "generate_dataset.py"
             output_dir = Path(tmp_dir) / "out"
             subprocess.run(
                 [
                     sys.executable,
-                    str(script_path),
+                    "-m",
+                    "new_math_ops.generate_dataset",
                     "--output-dir",
                     str(output_dir),
                     "--seed",
@@ -109,9 +105,7 @@ class GenerateDatasetTests(unittest.TestCase):
             counts_by_pair: Counter[tuple[str, str]] = Counter()
 
             level_bounds: dict[str, tuple[int, int]] = {
-                "L1": (1, 5),
-                "L2": (6, 10),
-                "L3": (11, 20),
+                level.value: bounds for level, bounds in generate_dataset.LEVEL_BOUNDS.items()
             }
             normal_ops = {"+", "-", "*", "/"}
             new_ops = {"##", "@@", "$$"}
@@ -176,7 +170,6 @@ class GenerateDatasetTests(unittest.TestCase):
 
     def test_generation_is_deterministic_for_same_seed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            script_path = MODULE_ROOT / "generate_dataset.py"
             output_a = Path(tmp_dir) / "a"
             output_b = Path(tmp_dir) / "b"
 
@@ -184,7 +177,8 @@ class GenerateDatasetTests(unittest.TestCase):
                 subprocess.run(
                     [
                         sys.executable,
-                        str(script_path),
+                        "-m",
+                        "new_math_ops.generate_dataset",
                         "--output-dir",
                         str(output_dir),
                         "--seed",

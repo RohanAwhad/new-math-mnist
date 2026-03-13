@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
-from contracts import ChatMessage
+from .contracts import ChatMessage
 
 ACompletionFn = Callable[..., Awaitable[object]]
 
@@ -73,3 +73,6 @@ class LiteLLMClient:
             max_tokens=self.max_tokens,
         )
         return _extract_content(response).strip()
+
+
+__all__ = ["LiteLLMClient"]

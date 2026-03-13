@@ -11,9 +11,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-import llm_client
-import prompts
-from contracts import (
+from . import llm_client, prompts
+from .contracts import (
     ArithmeticFamily,
     BucketCounts,
     BucketMetrics,

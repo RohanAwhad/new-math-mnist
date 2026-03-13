@@ -1219,9 +1219,10 @@ wheels = [
 [[package]]
 name = "new-math-ops"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "litellm" },
+    { name = "tqdm" },
 ]
 
 [package.dev-dependencies]
@@ -1233,7 +1234,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "litellm", specifier = ">=1.82.0" }]
+requires-dist = [
+    { name = "litellm", specifier = ">=1.82.0" },
+    { name = "tqdm", specifier = ">=4.67.0" },
+]
 
 [package.metadata.requires-dev]
 dev = [

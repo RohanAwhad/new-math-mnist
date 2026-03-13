@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
 import unittest
 from collections.abc import Sequence
 from pathlib import Path
 
-MODULE_ROOT = Path(__file__).resolve().parents[1]
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
-
-import evaluate
-from contracts import (
+import new_math_ops.evaluate as evaluate
+from new_math_ops.contracts import (
     ArithmeticFamily,
     ChatMessage,
     DatasetRow,

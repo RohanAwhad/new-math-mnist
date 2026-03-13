@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contracts import ChatMessage
+from .contracts import ChatMessage
 
 PROMPT_VERSION = "v2"
 
@@ -24,3 +24,11 @@ def build_messages(expression: str) -> list[ChatMessage]:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": USER_TEMPLATE.format(expression=expression)},
     ]
+
+
+__all__ = [
+    "PROMPT_VERSION",
+    "SYSTEM_PROMPT",
+    "USER_TEMPLATE",
+    "build_messages",
+]
